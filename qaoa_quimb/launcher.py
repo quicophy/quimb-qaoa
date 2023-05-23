@@ -1,37 +1,24 @@
-#################################################################
-#                                                               #
-#   QUIMB IMPLEMENTATION OF QAOA                                #
-#   ==========================================                  #
-#   ( qaoa_quimb.py )                                           #
-#   First instance: 05/01/2023                                  #
-#   Written by Julien Drapeau (julien.drapeau@usherbrooke.ca)   #
-#                                                               #
-#   Implementation of the Quantum Approximate Optimization      #
-#   Algorithm (QAOA) in Quimb. The following QAOA extensions    # 
-#   are also implemented: Trotterized Quantum Annealing (TQA)   #
-#   initialization, Grover-Mixer QAOA GM-QAOA).                 #
-#                                                               #
-#   DEPENDENCIES: numpy, quimb, cotengra, scipy                 #
-#                                                               #
-#################################################################
+"""
+Launcher for QAOA.
+"""
 
 
 import numpy as np
+import cotengra as ctg
 import quimb.tensor as qtn
 import time
 
-from .initialization import *
-from .hamiltonian import *
-from .circuit import *
-from .mps import *
-from .contraction import *
+from .initialization import ini
+from .circuit import create_qaoa_circ
+from .mps import create_qaoa_mps
+from .contraction import compute_energy, minimize_energy
 from .gates import *
 from .decomp import *
-from .utils import *
+
 
 class QAOA_Launcher:
     """
-    This class regroups the main methods of the regular QAOA algorithm applied to a NAE3SAT problem. It instantiates a QAOA object for a specific graph representing a NAE3SAT problem.
+    This class regroups the main methods of the regular QAOA algorithm applied to a particular problem. It instantiates a QAOA object for a specific graph with the necessary properties "numnodes" and "edges".
     """
 
     def __init__(self, G, p,
@@ -42,7 +29,7 @@ class QAOA_Launcher:
                 shots=1024,
                 optimizer='SLSQP',
                 backend="numpy",
-                contegra_kwargs={
+                cotengra_kwargs={
                 "methods":'kahypar', 
                 "reconf_opts":{},
                 "max_repeats":32,
@@ -67,23 +54,11 @@ class QAOA_Launcher:
         self.shots = shots
         self.optimizer = optimizer
         self.backend= backend
-        self.opt = ctg.ReusableHyperOptimizer(**contegra_kwargs)
+        self.opt = ctg.ReusableHyperOptimizer(**cotengra_kwargs)
         
-    def run_qaoa(self):
+    def run_qaoa(self, numcounts):
         """
-        Minimize the expectation value by finding the best parameters.
-        Analyse the results with a histogram.
-
-        Args:
-            G: graph object
-            p: int
-            number of alternating unitairies
-            A: parameter of the ising model
-
-        Returns:
-            obj: dict
-                counts
-
+        Run the qaoa.
         """
 
         start_ini = time.time()
@@ -104,8 +79,6 @@ class QAOA_Launcher:
                                 backend=self.backend)
         end_minim = time.time()
 
-        print("Done!")
-        
         if self.mps == False:
             circ = create_qaoa_circ(self.G, self.p,
                                     theta[:self.p], theta[self.p:],
@@ -127,27 +100,15 @@ class QAOA_Launcher:
                                 backend=self.backend)
         end_energy = time.time()
 
-        pre_counts = circ.simulate_counts(1000)
-        # pre_prob = find_prob_sol(self.G, pre_counts)[0]
-        pre_prob = 0.01
-
         start_sampling = time.time()
-        # counts = circ.simulate_counts(int(10*1/pre_prob*self.G.numnodes**4))
-        counts = 1
+        counts = circ.sample(numcounts)
         end_sampling = time.time()
-
-        start_pdf = time.time()
-        # prob = np.squeeze(np.abs(circ.to_dense())**2)
-        prob = 1
-        end_pdf = time.time()
 
         compute_time = {
             "initialization": end_ini-start_ini,
             "minimisation": end_minim-start_minim,
             "energy": end_energy-start_energy,
             "sampling": end_sampling-start_sampling,
-            "probability-density-function": end_pdf-start_pdf
         }
 
-        return prob, counts, energy, theta, compute_time
-    
+        return counts, energy, theta, compute_time

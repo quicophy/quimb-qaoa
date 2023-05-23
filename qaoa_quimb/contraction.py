@@ -1,3 +1,8 @@
+"""
+Functions for the contraction of QAOA.
+"""
+
+
 import numpy as np
 import quimb as qu
 from scipy.optimize import minimize
@@ -7,13 +12,16 @@ from .circuit import create_qaoa_circ
 from .mps import create_qaoa_mps
 from .hamiltonian import hamiltonian_gates, hamiltonian_ops
 
-import time 
 
 def compute_energy(x, p, G, qaoa_version="regular",
                             problem="nae3sat",
                             mps=False,
                             opt=None,
                             backend="numpy"):
+    """
+    Compute the energy of a qaoa circuit or a qaoa mps based on user input.
+    """
+
     if mps == False:
         return compute_energy_circ(x, p, G, qaoa_version=qaoa_version,
                                             problem=problem,
@@ -31,7 +39,7 @@ def compute_energy_circ(x, p, G,
            opt=None,
            backend="numpy"):
     """
-    Find the expectation value of the problem Hamiltonian with the circuit unitary parameters.
+    Find the expectation value of the problem Hamiltonian with the mps unitary parameters.
 
     Args:
         x: list of unitary parameters
@@ -44,14 +52,10 @@ def compute_energy_circ(x, p, G,
 
     circ = create_qaoa_circ(G, p, gammas, betas, qaoa_version, problem=problem)
     
-    start = time.time()
     ens = [
         circ.local_expectation(op, qubit, optimize=opt, backend=backend)
             for (op, qubit) in zip(ops, qubits)
     ]
-    end = time.time()
-
-    print (end-start)
 
     return sum(ens).real
 
@@ -74,17 +78,15 @@ def compute_energy_mps(x, p, G,
 
     psi = create_qaoa_mps(G, p, gammas, betas, qaoa_version, problem=problem)
 
-    start = time.time()
     ens = [
         psi.local_expectation_exact(op, qubit, optimize=opt, backend=backend)
             for (op, qubit) in zip(ops, qubits)
     ]
-    end = time.time()
-    print(end-start)
 
     return sum(ens).real
     
-def minimize_energy(theta_ini, p, G,
+def minimize_energy(theta_ini, p, G, 
+                    tau=0.8,
                     qaoa_version="regular",
                     problem="nae3sat",
                     mps=False,
@@ -93,13 +95,10 @@ def minimize_energy(theta_ini, p, G,
                     backend="numpy"):
         """
         Minimize the expectation value of the problem Hamiltonian. The actual computation is not rehearsed - the contraction widths and costs of each energy term are not pre-computed.
-
-        Args:
-            p: number of alternating unitaries
         """
 
-        # tau = -0.8*n
-        tau = - np.inf
+        n = G.numnodes
+        tau = -tau*n
 
         args = (p, G, qaoa_version, problem, mps, opt, backend)
 
@@ -116,7 +115,6 @@ def minimize_energy(theta_ini, p, G,
             theta = f_wrapper.best_x
 
         return theta
-
 
 class Objective_Function_Wrapper:
     """
@@ -142,6 +140,5 @@ class Objective_Function_Wrapper:
             print("Optimization terminated: Desired approximation ratio achieved.")
             raise Trigger
          
-
 class Trigger(Exception):
     pass

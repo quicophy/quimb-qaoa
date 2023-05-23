@@ -1,0 +1,35 @@
+alembic==1.11.1
+autoray==0.6.3
+cmaes==0.9.1
+colorlog==6.7.0
+contourpy==1.0.7
+cotengra @ git+https://github.com/jcmgray/cotengra.git@0db6abdd3af76cfa9b8d505ef5f6f1ed60a2c1ac
+cycler==0.11.0
+cytoolz==0.12.1
+fonttools==4.39.4
+greenlet==2.0.2
+kahypar==1.3.3
+kiwisolver==1.4.4
+llvmlite==0.40.0
+Mako==1.2.4
+MarkupSafe==2.1.2
+matplotlib==3.7.1
+networkx==3.1
+numba==0.57.0
+numpy==1.24.3
+opt-einsum==3.3.0
+optuna==3.1.1
+packaging==23.1
+Pillow==9.5.0
+psutil==5.9.5
+pyparsing==3.0.9
+python-dateutil==2.8.2
+PyYAML==6.0
+qecstruct==0.2.9
+quimb @ git+https://github.com/jcmgray/quimb.git@2a7a37799a204f0ae3f8dfe5add3250a6578fb9d
+scipy==1.10.1
+six==1.16.0
+SQLAlchemy==2.0.15
+toolz==0.12.0
+tqdm==4.65.0
+typing_extensions==4.6.0

@@ -1,7 +1,13 @@
+"""
+Implementation of different types of circuits for QAOA.
+"""
+
+
 import quimb as qu
 import quimb.tensor as qtn
 
-from .hamiltonian import *
+from .hamiltonian import hamiltonian_gates
+
 
 def create_qaoa_circ(G, p, gammas, betas, qaoa_version, problem="nae3sat"):
     """
@@ -20,10 +26,7 @@ def create_qaoa_circ(G, p, gammas, betas, qaoa_version, problem="nae3sat"):
 def create_regular_qaoa_circ(G, p, gammas, betas, problem="nae3sat", **circuit_opts,):
     """
     Creates a parametrized regular qaoa circuit.
-    
-    Args:
-        theta: list of unitary parameters
-    
+
     Returns:
         circ: quantum circuit
     """
@@ -54,11 +57,16 @@ def create_regular_qaoa_circ(G, p, gammas, betas, problem="nae3sat", **circuit_o
     circ = qtn.Circuit(n, **circuit_opts)
     circ.apply_gates(gates)
 
+    # print(circ.psi)
+
+    # circ.psi.compress_all()
+    # print(circ.psi)
+
     return circ
 
 def create_gm_qaoa_circ(G, p, gammas, betas, problem="nae3sat", **circuit_opts,):
     """
-    ONLY VALID UP UNTIL 14 QUBITS.
+    ONLY VALID UP TO 14 QUBITS. Creates a parametrized grover-mixer qaoa circuit.
     """
 
     circuit_opts.setdefault('gate_opts', {})
@@ -85,7 +93,6 @@ def create_gm_qaoa_circ(G, p, gammas, betas, problem="nae3sat", **circuit_opts,)
 
         for (coef, op, qubit) in zip(coefs, ops, qubits):
             gates.append((d, op, coef * gammas[d], *qubit))
-
 
         # mixer Hamiltonian
         for i in range(n):

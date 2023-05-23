@@ -1,11 +1,17 @@
+"""
+Implementation of different types of mps for QAOA with the mps/mpo method.
+"""
+
+
 import quimb.tensor as qtn
 from quimb.tensor.tensor_builder import MPS_computational_state
 
-from .hamiltonian import *
+from .hamiltonian import hamiltonian_gates
+
 
 def create_qaoa_mps(G, p, gammas, betas, qaoa_version, problem="nae3sat"):
     """
-    Creates the correct qaoa circuit based on user input.
+    Creates the correct qaoa mps based on user input.
     """
 
     if qaoa_version == 'regular':
@@ -19,10 +25,7 @@ def create_qaoa_mps(G, p, gammas, betas, qaoa_version, problem="nae3sat"):
 
 def create_regular_qaoa_mps(G, p, gammas, betas, problem="nae3sat", **circuit_opts,):
         """
-        Creates a parametrized regular qaoa circuit.
-        
-        Args:
-            theta: list of unitary parameters
+        Creates a parametrized regular qaoa mps.
         
         Returns:
             circ: quantum circuit
@@ -52,6 +55,7 @@ def create_regular_qaoa_mps(G, p, gammas, betas, problem="nae3sat", **circuit_op
 
                     psi0.gate_with_auto_swap_(coef*RZ(gammas[d]), qubit)
 
+            # mixer Hamiltonian
             for i in range(n):
                  psi0.gate_(RX(-2*betas[d]), i, contract="swap+split", tags="RX")
 
@@ -59,11 +63,8 @@ def create_regular_qaoa_mps(G, p, gammas, betas, problem="nae3sat", **circuit_op
     
 def create_gm_qaoa_mps(G, p, gammas, betas, problem="nae3sat", **circuit_opts,):
     """
-    Creates a parametrized grover-mixer qaoa circuit.
-    
-    Args:
-        theta: list of unitary parameters
-    
+    Creates a parametrized grover-mixer qaoa mps.
+
     Returns:
         circ: circuit
     """

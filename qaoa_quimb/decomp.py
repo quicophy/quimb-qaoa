@@ -1,4 +1,5 @@
-"""Functions for decomposing and projecting matrices.
+"""
+Functions for decomposing and projecting matrices.
 """
 
 import functools

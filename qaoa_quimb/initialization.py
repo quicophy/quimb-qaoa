@@ -1,12 +1,19 @@
+"""
+Initialization methods for the initial parameters of QAOA.
+"""
+
+
 import numpy as np
 
 from .contraction import compute_energy
+
 
 def ini(G, p, ini_method,
         qaoa_version="regular",
         problem="nae3sat",
         mps=False,
-        opt=None):
+        opt=None,
+        backend="numpy"):
     """
     Creates the correct initial parameters based on user input.
     """
@@ -18,7 +25,8 @@ def ini(G, p, ini_method,
                             qaoa_version=qaoa_version,
                             problem=problem,
                             mps=mps,
-                            opt=opt)
+                            opt=opt,
+                            backend=backend)
     else:
         raise ValueError('The initialization method is not valid.')
 
@@ -47,13 +55,6 @@ def TQA_ini(G, p,
             backend="numpy"):
         """
         Creates a list of initial unitary parameters for the QAOA algorithm. The parameters are initialized based on the Trotterized Quantum Annealing (TQA) strategy for initialization. See "Quantum Annealing Initialization of the Quantum Approximate Optimization Algorithm".
-
-        Args:
-            p: depth of the QAOA circuit
-            G: graph object
-            A: parameter of the Ising model
-            shots: number of circuit samples
-            simulator: qiskit simulator
 
         Returns:
             theta_ini: list of random unitary parameters

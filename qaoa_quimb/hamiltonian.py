@@ -1,9 +1,16 @@
+"""
+Implementation of the problem Hamiltonian of QAOA for different problems.
+"""
+
+
 import quimb as qu
 
 from .gates import *
 
+
 def hamiltonian_ops(G, problem="nae3sat"):
     """
+    Returns a list of the operators composing the problem Hamiltonian for QAOA in order to compute the local expectation based on user input.
     """
 
     if problem == "nae3sat":
@@ -17,6 +24,7 @@ def hamiltonian_ops(G, problem="nae3sat"):
     
 def hamiltonian_gates(G, problem="nae3sat"):
     """
+    Returns a list of the gates composing the problem Hamiltonian for QAOA in order to create a circuit based on user input.
     """
 
     if problem == "nae3sat":
@@ -31,6 +39,7 @@ def hamiltonian_gates(G, problem="nae3sat"):
 
 class Nae3sat_Hamiltonian:
     """
+    Implementation of the problem Hamiltonian for the NAE 3-SAT problem.
     """
 
     def __init__(self, G):
@@ -64,6 +73,7 @@ class Nae3sat_Hamiltonian:
 
 class Genome_Hamiltonian:
     """
+    Implementation of the problem Hamiltonian for the genome assembly/travelling salesman problem.
     """
 
     def __init__(self, G):
