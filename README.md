@@ -7,7 +7,7 @@ This librairy implements an optimized version of the Quantum Approximate Optimiz
 To install with pip:
 
 ```
-pip install qaoa_quimb
+pip install qaoa-quimb
 ```
 
 ## References
