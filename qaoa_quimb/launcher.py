@@ -130,6 +130,14 @@ class QAOA_Launcher:
         counts = circ.sample(shots)
         end_sampling = time.time()
 
+        counts_list = []
+        for count in counts:
+            counts_list.append(count)
+
+        counts = {}
+        for count in counts_list:
+            counts[count] = counts.get(count, 0) + 1
+
         compute_time = {
             "initialization": end_ini - start_ini,
             "minimisation": end_minim - start_minim,
