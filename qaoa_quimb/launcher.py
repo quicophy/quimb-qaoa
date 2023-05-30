@@ -21,20 +21,25 @@ class QAOA_Launcher:
     This class regroups the main methods of the regular QAOA algorithm applied to a particular problem. It instantiates a QAOA object for a specific graph with the necessary properties "numnodes" and "edges".
     """
 
-    def __init__(self, G, p,
-                qaoa_version='regular',
-                ini_method="tqa",
-                problem="nae3sat",
-                mps=False,
-                shots=1024,
-                optimizer='SLSQP',
-                backend="numpy",
-                cotengra_kwargs={
-                "methods":'kahypar', 
-                "reconf_opts":{},
-                "max_repeats":32,
-                "parallel":True,
-                "max_time":"rate:1e6",}):
+    def __init__(
+        self,
+        G,
+        p,
+        qaoa_version="regular",
+        ini_method="tqa",
+        problem="nae3sat",
+        mps=False,
+        optimizer="SLSQP",
+        tau=None,
+        backend="numpy",
+        cotengra_kwargs={
+            "methods": "kahypar",
+            "reconf_opts": {},
+            "max_repeats": 32,
+            "parallel": True,
+            "max_time": "rate:1e6",
+        },
+    ):
         """
         Args:
         G: graph object
@@ -51,64 +56,85 @@ class QAOA_Launcher:
         self.ini_method = ini_method
         self.problem = problem
         self.mps = mps
-        self.shots = shots
         self.optimizer = optimizer
-        self.backend= backend
+        self.tau = tau
+        self.backend = backend
         self.opt = ctg.ReusableHyperOptimizer(**cotengra_kwargs)
-        
-    def run_qaoa(self, numcounts):
+
+    def run_qaoa(self, shots):
         """
         Run the qaoa.
         """
 
         start_ini = time.time()
-        theta_ini = ini(self.G, self.p, self.ini_method,
-                        qaoa_version=self.qaoa_version,
-                        problem=self.problem,
-                        mps=self.mps,
-                        opt=self.opt)
+        theta_ini = ini(
+            self.G,
+            self.p,
+            self.ini_method,
+            qaoa_version=self.qaoa_version,
+            problem=self.problem,
+            mps=self.mps,
+            opt=self.opt,
+        )
         end_ini = time.time()
 
         start_minim = time.time()
-        theta = minimize_energy(theta_ini, self.p, self.G,
-                                qaoa_version=self.qaoa_version,
-                                problem=self.problem,
-                                mps=self.mps,
-                                optimizer=self.optimizer,
-                                opt=self.opt,
-                                backend=self.backend)
+        theta = minimize_energy(
+            theta_ini,
+            self.p,
+            self.G,
+            tau=self.tau,
+            qaoa_version=self.qaoa_version,
+            problem=self.problem,
+            mps=self.mps,
+            optimizer=self.optimizer,
+            opt=self.opt,
+            backend=self.backend,
+        )
         end_minim = time.time()
 
         if self.mps == False:
-            circ = create_qaoa_circ(self.G, self.p,
-                                    theta[:self.p], theta[self.p:],
-                                    qaoa_version=self.qaoa_version,
-                                    problem=self.problem)
+            circ = create_qaoa_circ(
+                self.G,
+                self.p,
+                theta[: self.p],
+                theta[self.p :],
+                qaoa_version=self.qaoa_version,
+                problem=self.problem,
+            )
         else:
-            psi0 = create_qaoa_mps(self.G, self.p, 
-                                theta[:self.p], theta[self.p:],
-                                qaoa_version=self.qaoa_version,
-                                problem=self.problem)
+            psi0 = create_qaoa_mps(
+                self.G,
+                self.p,
+                theta[: self.p],
+                theta[self.p :],
+                qaoa_version=self.qaoa_version,
+                problem=self.problem,
+            )
             circ = qtn.Circuit(self.G.numnodes, psi0=psi0)
 
         start_energy = time.time()
-        energy = compute_energy(theta, self.p, self.G,
-                                qaoa_version=self.qaoa_version,
-                                problem=self.problem,
-                                mps=self.mps,
-                                opt=self.opt,
-                                backend=self.backend)
+        energy = compute_energy(
+            theta,
+            self.p,
+            self.G,
+            qaoa_version=self.qaoa_version,
+            problem=self.problem,
+            mps=self.mps,
+            opt=self.opt,
+            backend=self.backend,
+        )
         end_energy = time.time()
 
         start_sampling = time.time()
-        counts = circ.sample(numcounts)
+        counts = circ.sample(shots)
         end_sampling = time.time()
 
         compute_time = {
-            "initialization": end_ini-start_ini,
-            "minimisation": end_minim-start_minim,
-            "energy": end_energy-start_energy,
-            "sampling": end_sampling-start_sampling,
+            "initialization": end_ini - start_ini,
+            "minimisation": end_minim - start_minim,
+            "energy": end_energy - start_energy,
+            "sampling": end_sampling - start_sampling,
         }
 
         return counts, energy, theta, compute_time

@@ -8,31 +8,17 @@ import quimb as qu
 from .gates import *
 
 
-def hamiltonian_ops(G, problem="nae3sat"):
+def hamiltonian(G, problem):
     """
     Returns a list of the operators composing the problem Hamiltonian for QAOA in order to compute the local expectation based on user input.
     """
 
     if problem == "nae3sat":
-        return Nae3sat_Hamiltonian(G).operators()
-    
-    elif problem == "genome":
-        return Genome_Hamiltonian(G).operators()
-    
-    else:
-        raise ValueError("This problem is not implemented yet.")
-    
-def hamiltonian_gates(G, problem="nae3sat"):
-    """
-    Returns a list of the gates composing the problem Hamiltonian for QAOA in order to create a circuit based on user input.
-    """
+        return Nae3sat_Hamiltonian(G)
 
-    if problem == "nae3sat":
-        return Nae3sat_Hamiltonian(G).gates()
-    
     elif problem == "genome":
-        return Genome_Hamiltonian(G).gates()
-    
+        return Genome_Hamiltonian(G)
+
     else:
         raise ValueError("This problem is not implemented yet.")
 
@@ -43,33 +29,33 @@ class Nae3sat_Hamiltonian:
     """
 
     def __init__(self, G):
-        
         self.G = G
 
+    @property
+    def numqubit(self):
+        n = self.G.numnodes
+        return n
+
     def operators(self):
-
-        n = len(self.G.edges)
-        A = 1
-
-        ops = [A*qu.pauli('Z') & qu.pauli('Z') for i in range(n)]
-
-        qubits = self.G.edges
+        ops = []
+        qubits = []
+        for edge, weight in list(self.G.terms.items()):
+            ops.append(weight * qu.pauli("Z") & qu.pauli("Z"))
+            qubits.append(edge)
 
         return ops, qubits
-    
+
     def gates(self):
-
-        n = len(self.G.edges)
-        A = 1
-
-        coefs = [A for i in range(n)]
-        
-        ops = ["rzz" for i in range(n)]
-
-        qubits = self.G.edges
+        coefs = []
+        ops = []
+        qubits = []
+        for edge, weight in list(self.G.terms.items()):
+            coefs.append(-weight)
+            ops.append("rzz")
+            qubits.append(edge)
 
         return coefs, ops, qubits
-    
+
 
 class Genome_Hamiltonian:
     """
@@ -77,138 +63,110 @@ class Genome_Hamiltonian:
     """
 
     def __init__(self, G):
-        
         self.G = G
 
-    def operators(self):
-
+    def __cost_hamiltonian__(self):
         n = self.G.numnodes
-        w = 1
-        d = 1
 
-        ops = []
-        qubits = []
+        rz_gates = {}
+        rzz_gates = {}
 
         # Hamiltonian 1
         for i in range(n**2):
-            ops.append(w*qu.pauli('Z'))
-            qubits.append(i)
+            rz_gates[(i,)] = rz_gates.get((i,), 0) + 1 / 2
 
         # Hamiltonian 2
-        for r in range(n):
-            for i in range(n):
-                for j in range(i):
-                    ops.append(w/2*qu.pauli('Z') & qu.pauli('Z'))
-                    qubits.append((i*n+r), (j*n+r))
-
-                    ops.append(-w/2*qu.pauli('Z'))
-                    qubits.append(i*n+r)
-
-                    ops.append(-w/2*qu.pauli('Z'))
-                    qubits.append(j*n+r)
-
-        # Hamiltonian 3
-        for i in range(n):
-            for r in range(n):
-                for s in range(r):
-                    ops.append(w/2*qu.pauli('Z') & qu.pauli('Z'))
-                    qubits.append((i*n+r), (i*n+s))
-
-                    ops.append(-w/2*qu.pauli('Z'))
-                    qubits.append(i*n+r)
-
-                    ops.append(-w/2*qu.pauli('Z'))
-                    qubits.append(i*n+s)
-
-        # Hamiltonian 4
-        for i in range(n):
-            for j in range(n):
-                for r in range(n):
-
-                    if j != i:
+        for j in range(1, n):
+            for v in range(n):
+                for s in range(j):
+                    if j == s:
                         continue
 
-                    s = (r+1)%n
+                    rz_gates[(v * n + j,)] = rz_gates.get((v * n + j,), 0) - 1 / 4
 
-                    ops.append(d/4*qu.pauli('Z') & qu.pauli('Z'))
-                    qubits.append((i*n+r), (j*n+s))
+                    rz_gates[(v * n + s,)] = rz_gates.get((v * n + s,), 0) - 1 / 4
 
-                    ops.append(-d/4*qu.pauli('Z'))
-                    qubits.append(i*n+r)
+                    rzz_gates[(v * n + j, v * n + s)] = (
+                        rzz_gates.get((v * n + j, v * n + s), 0) + 1 / 4
+                    )
 
-                    ops.append(-w/2*qu.pauli('Z'))
-                    qubits.append(j*n+s)
+        # Hamiltonian 3
+        for j in range(n):
+            for v in range(1, n):
+                for s in range(v):
+                    if v == s:
+                        continue
+
+                    rz_gates[(v * n + j,)] = rz_gates.get((v * n + j,), 0) - 1 / 4
+
+                    rz_gates[(s * n + j,)] = rz_gates.get((s * n + j,), 0) - 1 / 4
+
+                    rzz_gates[(v * n + j, s * n + j)] = (
+                        rzz_gates.get((v * n + j, s * n + j), 0) + 1 / 4
+                    )
+
+        keys = self.G.terms.keys()
+        # Hamiltonian 4
+        for u in range(n):
+            for v in range(n):
+                for j in range(n - 1):
+                    if (u, v) in keys or (v, u) in keys:
+                        continue
+
+                    if u == v:
+                        continue
+
+                    if u * n + j == v * n + s:
+                        continue
+
+                    s = (j + 1) % n
+
+                    rz_gates[(u * n + j,)] = rz_gates.get((u * n + j,), 0) - 1 / 4
+
+                    rz_gates[(v * n + s,)] = rz_gates.get((v * n + s,), 0) - 1 / 4
+
+                    rzz_gates[(u * n + j, v * n + s)] = (
+                        rzz_gates.get((u * n + j, v * n + s), 0) + 1 / 4
+                    )
+
+        return rz_gates, rzz_gates
+
+    @property
+    def numqubit(self):
+        n = self.G.numnodes**2
+        return n
+
+    def operators(self):
+        qubits = []
+        ops = []
+
+        rz_gates, rzz_gates = self.__cost_hamiltonian__()
+
+        for qubit, value in rz_gates.items():
+            qubits.append(qubit)
+            ops.append(value * qu.pauli("Z"))
+
+        for qubit, value in rzz_gates.items():
+            qubits.append(qubit)
+            ops.append(value * qu.pauli("Z") & qu.pauli("Z"))
 
         return ops, qubits
-    
+
     def gates(self):
-
-        n = self.G.numnodes
-        w = 1
-        d = 1
-
-        coefs = []
-        ops = []
         qubits = []
+        ops = []
+        coefs = []
 
-        # Hamiltonian 1
-        for i in range(n**2):
-            coefs.append(w)
+        rz_gates, rzz_gates = self.__cost_hamiltonian__()
+
+        for qubit, value in rz_gates.items():
+            qubits.append(qubit)
             ops.append("rz")
-            qubits.append(i)
+            coefs.append(value)
 
-        # Hamiltonian 2
-        for r in range(n):
-            for i in range(n):
-                for j in range(i):
-                    coefs.append(w/2)
-                    ops.append("rzz")
-                    qubits.append((i*n+r), (j*n+r))
-
-                    coefs.append(-w/2)
-                    ops.append("rz")
-                    qubits.append(i*n+r)
-
-                    coefs.append(-w/2)
-                    ops.append("rz")
-                    qubits.append(j*n+r)
-
-        # Hamiltonian 3
-        for i in range(n):
-            for r in range(n):
-                for s in range(r):
-                    coefs.append(w/2)
-                    ops.append("rzz")
-                    qubits.append((i*n+r), (i*n+s))
-
-                    coefs.append(-w/2)
-                    ops.append("rz")
-                    qubits.append(i*n+r)
-
-                    coefs.append(-w/2)
-                    ops.append("rz")
-                    qubits.append(i*n+s)
-
-        # Hamiltonian 4
-        for i in range(n):
-            for j in range(n):
-                for r in range(n):
-
-                    if j != i:
-                        continue
-
-                    s = (r+1)%n
-
-                    coefs.append(d/4)
-                    ops.append("rzz")
-                    qubits.append((i*n+r), (j*n+s))
-
-                    coefs.append(-d/4)
-                    ops.append("rz")
-                    qubits.append(i*n+r)
-
-                    coefs.append(-d/4)
-                    ops.append("rz")
-                    qubits.append(j*n+s)
+        for qubit, value in rzz_gates.items():
+            qubits.append(qubit)
+            ops.append("rzz")
+            coefs.append(value)
 
         return coefs, ops, qubits
