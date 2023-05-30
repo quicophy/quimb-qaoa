@@ -10,6 +10,12 @@ To install with pip:
 pip install qaoa-quimb
 ```
 
+To install the developpement version:
+
+```
+pip install qaoa-quimb@git+https://github.com/juliendrapeau/qaoa-quimb
+```
+
 ## References
 
 Gray, J. (2018). quimb: a python library for quantum information and many-body calculations. Journal of Open Source Software, 3(29), 819. doi:10.21105/joss.00819.
