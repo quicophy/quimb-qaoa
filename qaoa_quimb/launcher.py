@@ -3,7 +3,6 @@ Launcher for QAOA.
 """
 
 
-import numpy as np
 import cotengra as ctg
 import quimb.tensor as qtn
 import time
@@ -12,6 +11,7 @@ from .initialization import ini
 from .circuit import create_qaoa_circ
 from .mps import create_qaoa_mps
 from .contraction import compute_energy, minimize_energy
+from .utils import rehearse_qaoa_circ
 from .gates import *
 from .decomp import *
 
@@ -66,6 +66,18 @@ class QAOA_Launcher:
         Run the qaoa.
         """
 
+        start_path = time.time()
+        width, cost = rehearse_qaoa_circ(
+            self.G,
+            self.p,
+            qaoa_version=self.qaoa_version,
+            problem=self.problem,
+            mps=self.mps,
+            opt=self.opt,
+            backend=self.backend,
+        )
+        end_path = time.time()
+
         start_ini = time.time()
         theta_ini = ini(
             self.G,
@@ -93,6 +105,19 @@ class QAOA_Launcher:
         )
         end_minim = time.time()
 
+        start_energy = time.time()
+        energy = compute_energy(
+            theta,
+            self.p,
+            self.G,
+            qaoa_version=self.qaoa_version,
+            problem=self.problem,
+            mps=self.mps,
+            opt=self.opt,
+            backend=self.backend,
+        )
+        end_energy = time.time()
+
         if self.mps == False:
             circ = create_qaoa_circ(
                 self.G,
@@ -113,19 +138,6 @@ class QAOA_Launcher:
             )
             circ = qtn.Circuit(self.G.numnodes, psi0=psi0)
 
-        start_energy = time.time()
-        energy = compute_energy(
-            theta,
-            self.p,
-            self.G,
-            qaoa_version=self.qaoa_version,
-            problem=self.problem,
-            mps=self.mps,
-            opt=self.opt,
-            backend=self.backend,
-        )
-        end_energy = time.time()
-
         start_sampling = time.time()
         counts = circ.sample(shots)
         end_sampling = time.time()
@@ -140,6 +152,7 @@ class QAOA_Launcher:
 
         compute_time = {
             "initialization": end_ini - start_ini,
+            "contraction path": end_path - start_path,
             "minimisation": end_minim - start_minim,
             "energy": end_energy - start_energy,
             "sampling": end_sampling - start_sampling,

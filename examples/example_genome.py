@@ -14,10 +14,10 @@ from qaoa_quimb.utils import draw_qaoa_circ, rehearse_qaoa_circ
 
 # PARAMETERS
 
-numqubit = 3
+numqubit = 5
 seed = 12345
 
-p = 1
+p = 2
 ini_method = "tqa"
 qaoa_version = "regular"
 problem = "genome"
@@ -41,27 +41,26 @@ G = nx.erdos_renyi_graph(numqubit, 0.6, seed=seed)
 G.numnodes = G.order()
 G.terms = {(i, j): 1 for (i, j) in G.edges}
 
-nx.draw(G, with_labels=True)
-plt.show()
+# nx.draw(G, with_labels=True)
 
 # MAIN
 
-draw_qaoa_circ(G, p, qaoa_version=qaoa_version, problem=problem)
+# draw_qaoa_circ(G, p, qaoa_version=qaoa_version, problem=problem)
 
-opt = ctg.ReusableHyperOptimizer(**cotengra_kwargs)
-width, cost = rehearse_qaoa_circ(
-    G,
-    p,
-    ini_method,
-    qaoa_version=qaoa_version,
-    problem=problem,
-    mps=mps,
-    opt=opt,
-    backend=backend,
-)
+# opt = ctg.ReusableHyperOptimizer(**cotengra_kwargs)
+# width, cost = rehearse_qaoa_circ(
+#     G,
+#     p,
+#     ini_method,
+#     qaoa_version=qaoa_version,
+#     problem=problem,
+#     mps=mps,
+#     opt=opt,
+#     backend=backend,
+# )
 
-print("Width :", width)
-print("Cost :", cost)
+# print("Width :", width)
+# print("Cost :", cost)
 
 start = time.time()
 counts, energy, theta, compute_time = QAOA_Launcher(
@@ -78,23 +77,19 @@ counts, energy, theta, compute_time = QAOA_Launcher(
 ).run_qaoa(shots)
 end = time.time()
 
-counts_list = []
-for count in counts:
-    counts_list.append(count)
-
-max_count = max(set(counts_list), key=counts_list.count)
+max_count = max(counts, key=counts.get)
 print("Max count:", max_count)
-print("Number of max count:", counts_list.count(max_count))
+print("Number of max count:", counts[max_count])
 
-counts_list = list(filter(lambda a: a != max_count, counts_list))
-max_count = max(set(counts_list), key=counts_list.count)
+counts.pop(max_count)
+max_count = max(counts, key=counts.get)
 print("Max count:", max_count)
-print("Number of max count:", counts_list.count(max_count))
+print("Number of max count:", counts[max_count])
 
-counts_list = list(filter(lambda a: a != max_count, counts_list))
-max_count = max(set(counts_list), key=counts_list.count)
+counts.pop(max_count)
+max_count = max(counts, key=counts.get)
 print("Max count:", max_count)
-print("Number of max count:", counts_list.count(max_count))
+print("Number of max count:", counts[max_count])
 
 print("Energy :", energy)
 print("Time :", end - start)

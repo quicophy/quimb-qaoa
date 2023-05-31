@@ -4,9 +4,7 @@ Functions for the contraction of QAOA.
 
 
 import numpy as np
-import quimb as qu
 from scipy.optimize import minimize
-import cotengra as ctg
 
 from .circuit import create_qaoa_circ
 from .mps import create_qaoa_mps
@@ -64,7 +62,6 @@ def compute_energy_circ(
 
     hamil = hamiltonian(G, problem)
     ops, qubits = hamil.operators()
-
     circ = create_qaoa_circ(G, p, gammas, betas, qaoa_version, problem=problem)
 
     ens = [

@@ -74,10 +74,10 @@ def TQA_ini(
         theta_ini: list of random unitary parameters
     """
 
-    time = np.linspace(0.1, 3, 20)
+    times = np.linspace(0.1, 3, 20)
 
     energies = []
-    for t_max in time:
+    for t_max in times:
         dt = t_max / p
         t = dt * (np.arange(1, p + 1) - 0.5)
         gamma = (t / t_max) * dt
@@ -99,7 +99,7 @@ def TQA_ini(
         )
 
     idx = np.argmin(energies)
-    t_max = time[idx]
+    t_max = times[idx]
 
     dt = t_max / p
     t = dt * (np.arange(1, p + 1) - 0.5)

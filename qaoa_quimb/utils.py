@@ -4,10 +4,11 @@ Misc utility functions.
 
 
 import numpy as np
-import matplotlib.pyplot as plt
+import quimb.tensor as qtn
 
-from .initialization import rand_ini, ini
+from .initialization import rand_ini
 from .circuit import create_qaoa_circ
+from .mps import create_qaoa_mps
 from .hamiltonian import hamiltonian
 
 
@@ -32,7 +33,6 @@ def draw_qaoa_circ(G, p, qaoa_version="regular", problem="nae3sat"):
 def rehearse_qaoa_circ(
     G,
     p,
-    ini_method="tqa",
     qaoa_version="regular",
     problem="nae3sat",
     mps=False,
@@ -43,26 +43,28 @@ def rehearse_qaoa_circ(
     Rehearse the contraction of the QAOA circuit and compute the maximal intermediary tensor width and total contraction cost of the best contraction path.
     """
 
-    theta_ini = ini(
-        G,
-        p,
-        ini_method,
-        qaoa_version=qaoa_version,
-        problem=problem,
-        mps=mps,
-        opt=opt,
-        backend=backend,
-    )
+    theta_ini = rand_ini(p)
 
     gammas = theta_ini[:p]
     betas = theta_ini[p:]
 
+    if mps == False:
+        circ = create_qaoa_circ(
+            G, p, gammas, betas, qaoa_version=qaoa_version, problem=problem
+        )
+    else:
+        psi0 = create_qaoa_mps(
+            G,
+            p,
+            theta_ini[:p],
+            theta_ini[p:],
+            qaoa_version=qaoa_version,
+            problem=problem,
+        )
+        circ = qtn.Circuit(G.numnodes, psi0=psi0)
+
     hamil = hamiltonian(G, problem)
     ops, qubits = hamil.operators()
-
-    circ = create_qaoa_circ(
-        G, p, gammas, betas, qaoa_version=qaoa_version, problem=problem
-    )
 
     local_exp_rehs = [
         circ.local_expectation_rehearse(op, qubit, optimize=opt, backend=backend)

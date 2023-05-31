@@ -64,6 +64,9 @@ class Genome_Hamiltonian:
 
     def __init__(self, G):
         self.G = G
+        rz_gates, rzz_gates = self.__cost_hamiltonian__()
+        self.rz_gates = rz_gates
+        self.rzz_gates = rzz_gates
 
     def __cost_hamiltonian__(self):
         n = self.G.numnodes
@@ -140,13 +143,11 @@ class Genome_Hamiltonian:
         qubits = []
         ops = []
 
-        rz_gates, rzz_gates = self.__cost_hamiltonian__()
-
-        for qubit, value in rz_gates.items():
+        for qubit, value in self.rz_gates.items():
             qubits.append(qubit)
             ops.append(value * qu.pauli("Z"))
 
-        for qubit, value in rzz_gates.items():
+        for qubit, value in self.rzz_gates.items():
             qubits.append(qubit)
             ops.append(value * qu.pauli("Z") & qu.pauli("Z"))
 
@@ -157,14 +158,12 @@ class Genome_Hamiltonian:
         ops = []
         coefs = []
 
-        rz_gates, rzz_gates = self.__cost_hamiltonian__()
-
-        for qubit, value in rz_gates.items():
+        for qubit, value in self.rz_gates.items():
             qubits.append(qubit)
             ops.append("rz")
             coefs.append(value)
 
-        for qubit, value in rzz_gates.items():
+        for qubit, value in self.rzz_gates.items():
             qubits.append(qubit)
             ops.append("rzz")
             coefs.append(value)
