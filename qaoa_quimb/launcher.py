@@ -87,6 +87,7 @@ class QAOA_Launcher:
             problem=self.problem,
             mps=self.mps,
             opt=self.opt,
+            backend=self.backend
         )
         end_ini = time.time()
 
@@ -140,7 +141,6 @@ class QAOA_Launcher:
 
         start_sampling = time.time()
         counts = circ.sample(shots)
-        end_sampling = time.time()
 
         counts_list = []
         for count in counts:
@@ -149,6 +149,7 @@ class QAOA_Launcher:
         counts = {}
         for count in counts_list:
             counts[count] = counts.get(count, 0) + 1
+        end_sampling = time.time()
 
         compute_time = {
             "initialization": end_ini - start_ini,
