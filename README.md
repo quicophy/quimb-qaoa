@@ -10,7 +10,7 @@ To install with pip:
 pip install qaoa-quimb
 ```
 
-To install the developpement version:
+To install the developpement version (recommended):
 
 ```
 pip install qaoa-quimb@git+https://github.com/juliendrapeau/qaoa-quimb
