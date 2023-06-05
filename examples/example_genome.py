@@ -14,10 +14,10 @@ from qaoa_quimb.utils import draw_qaoa_circ, rehearse_qaoa_circ
 
 # PARAMETERS
 
-numqubit = 5
+numqubit = 3
 seed = 12345
 
-p = 2
+p = 1
 ini_method = "tqa"
 qaoa_version = "regular"
 problem = "genome"
@@ -41,26 +41,26 @@ G = nx.erdos_renyi_graph(numqubit, 0.6, seed=seed)
 G.numnodes = G.order()
 G.terms = {(i, j): 1 for (i, j) in G.edges}
 
-# nx.draw(G, with_labels=True)
+nx.draw(G, with_labels=True)
+plt.show()
 
 # MAIN
 
-# draw_qaoa_circ(G, p, qaoa_version=qaoa_version, problem=problem)
+draw_qaoa_circ(G, p, qaoa_version=qaoa_version, problem=problem)
 
-# opt = ctg.ReusableHyperOptimizer(**cotengra_kwargs)
-# width, cost = rehearse_qaoa_circ(
-#     G,
-#     p,
-#     ini_method,
-#     qaoa_version=qaoa_version,
-#     problem=problem,
-#     mps=mps,
-#     opt=opt,
-#     backend=backend,
-# )
+opt = ctg.ReusableHyperOptimizer(**cotengra_kwargs)
+width, cost = rehearse_qaoa_circ(
+    G,
+    p,
+    qaoa_version=qaoa_version,
+    problem=problem,
+    mps=mps,
+    opt=opt,
+    backend=backend,
+)
 
-# print("Width :", width)
-# print("Cost :", cost)
+print("Width :", width)
+print("Cost :", cost)
 
 start = time.time()
 counts, energy, theta, compute_time = QAOA_Launcher(

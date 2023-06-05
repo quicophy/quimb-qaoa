@@ -64,7 +64,7 @@ numqubit = 5
 alpha = 1
 seed = 12345
 
-p = 1
+p = 2
 ini_method = "tqa"
 qaoa_version = "regular"
 problem = "nae3sat"
@@ -95,7 +95,6 @@ opt = ctg.ReusableHyperOptimizer(**cotengra_kwargs)
 width, cost = rehearse_qaoa_circ(
     G,
     p,
-    ini_method,
     qaoa_version=qaoa_version,
     problem=problem,
     mps=mps,
