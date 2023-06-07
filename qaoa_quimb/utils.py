@@ -3,8 +3,8 @@ Misc utility functions.
 """
 
 
-import numpy as np
 import quimb.tensor as qtn
+import numpy as np
 
 from .initialization import rand_ini
 from .circuit import create_qaoa_circ
@@ -48,11 +48,7 @@ def rehearse_qaoa_circ(
     gammas = theta_ini[:p]
     betas = theta_ini[p:]
 
-    if mps == False:
-        circ = create_qaoa_circ(
-            G, p, gammas, betas, qaoa_version=qaoa_version, problem=problem
-        )
-    else:
+    if mps:
         psi0 = create_qaoa_mps(
             G,
             p,
@@ -62,6 +58,10 @@ def rehearse_qaoa_circ(
             problem=problem,
         )
         circ = qtn.Circuit(G.numnodes, psi0=psi0)
+    else:
+        circ = create_qaoa_circ(
+            G, p, gammas, betas, qaoa_version=qaoa_version, problem=problem
+        )
 
     hamil = hamiltonian(G, problem)
     ops, qubits = hamil.operators()

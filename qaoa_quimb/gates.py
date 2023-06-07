@@ -1,11 +1,11 @@
 """
-Creation of the gates for quantum circuits 
+Creation of the gates for quantum circuits
 """
 
 
-import numpy as np
 import quimb as qu
 from quimb.tensor.circuit import rzz_param_gen, rx_gate_param_gen
+import numpy as np
 
 
 def H():

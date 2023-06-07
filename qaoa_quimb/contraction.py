@@ -25,8 +25,8 @@ def compute_energy(
     Compute the energy of a qaoa circuit or a qaoa mps based on user input.
     """
 
-    if mps == False:
-        return compute_energy_circ(
+    if mps:
+        energy = compute_energy_mps(
             x,
             p,
             G,
@@ -36,7 +36,7 @@ def compute_energy(
             backend=backend,
         )
     else:
-        return compute_energy_mps(
+        energy = compute_energy_circ(
             x,
             p,
             G,
@@ -45,6 +45,8 @@ def compute_energy(
             opt=opt,
             backend=backend,
         )
+
+    return energy
 
 
 def compute_energy_circ(
@@ -116,7 +118,7 @@ def minimize_energy(
 
     args = (p, G, qaoa_version, problem, mps, opt, backend)
 
-    if tau == None:
+    if tau is None:
         res = minimize(compute_energy, x0=theta_ini, method=optimizer, args=args)
         theta = res.x
 

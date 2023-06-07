@@ -3,7 +3,6 @@ Implementation of different types of circuits for QAOA.
 """
 
 
-import numpy as np
 import quimb as qu
 import quimb.tensor as qtn
 

@@ -12,7 +12,6 @@ from .circuit import create_qaoa_circ
 from .mps import create_qaoa_mps
 from .contraction import compute_energy, minimize_energy
 from .utils import rehearse_qaoa_circ
-from .gates import *
 from .decomp import *
 
 
@@ -67,7 +66,7 @@ class QAOA_Launcher:
         """
 
         start_path = time.time()
-        width, cost = rehearse_qaoa_circ(
+        rehearse_qaoa_circ(
             self.G,
             self.p,
             qaoa_version=self.qaoa_version,
@@ -87,7 +86,7 @@ class QAOA_Launcher:
             problem=self.problem,
             mps=self.mps,
             opt=self.opt,
-            backend=self.backend
+            backend=self.backend,
         )
         end_ini = time.time()
 
@@ -119,16 +118,7 @@ class QAOA_Launcher:
         )
         end_energy = time.time()
 
-        if self.mps == False:
-            circ = create_qaoa_circ(
-                self.G,
-                self.p,
-                theta[: self.p],
-                theta[self.p :],
-                qaoa_version=self.qaoa_version,
-                problem=self.problem,
-            )
-        else:
+        if self.mps:
             psi0 = create_qaoa_mps(
                 self.G,
                 self.p,
@@ -138,9 +128,18 @@ class QAOA_Launcher:
                 problem=self.problem,
             )
             circ = qtn.Circuit(self.G.numnodes, psi0=psi0)
+        else:
+            circ = create_qaoa_circ(
+                self.G,
+                self.p,
+                theta[: self.p],
+                theta[self.p :],
+                qaoa_version=self.qaoa_version,
+                problem=self.problem,
+            )
 
         start_sampling = time.time()
-        counts = circ.sample(shots)
+        counts = circ.sample(shots, backend=self.backend)
 
         counts_list = []
         for count in counts:

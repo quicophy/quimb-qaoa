@@ -7,6 +7,7 @@ import quimb.tensor as qtn
 from quimb.tensor.tensor_builder import MPS_computational_state
 
 from .hamiltonian import hamiltonian
+from .gates import *
 
 
 def create_qaoa_mps(G, p, gammas, betas, qaoa_version, problem="nae3sat"):
@@ -30,7 +31,6 @@ def create_regular_qaoa_mps(
     gammas,
     betas,
     problem="nae3sat",
-    **circuit_opts,
 ):
     """
     Creates a parametrized regular qaoa mps.
@@ -74,7 +74,6 @@ def create_gm_qaoa_mps(
     gammas,
     betas,
     problem="nae3sat",
-    **circuit_opts,
 ):
     """
     Creates a parametrized grover-mixer qaoa mps.
