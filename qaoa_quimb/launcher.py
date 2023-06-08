@@ -5,6 +5,7 @@ Launcher for QAOA.
 
 import cotengra as ctg
 import quimb.tensor as qtn
+from collections import Counter
 import time
 
 from .initialization import ini
@@ -139,18 +140,9 @@ class QAOA_Launcher:
                 problem=self.problem,
             )
 
-        optimizer = ctg.HyperOptimizer(**self.cotengra_kwargs)
-
         start_sampling = time.time()
-        counts = circ.sample(shots, optimize=optimizer, backend=self.backend)
-
-        counts_list = []
-        for count in counts:
-            counts_list.append(count)
-
-        counts = {}
-        for count in counts_list:
-            counts[count] = counts.get(count, 0) + 1
+        # maybe use "hyper" optimize argument
+        counts = Counter(circ.sample(shots, optimize=None, backend=self.backend))
         end_sampling = time.time()
 
         compute_time = {
