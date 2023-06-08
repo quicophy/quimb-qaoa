@@ -58,6 +58,7 @@ class QAOA_Launcher:
         self.optimizer = optimizer
         self.tau = tau
         self.backend = backend
+        self.cotengra_kwargs = cotengra_kwargs
         self.opt = ctg.ReusableHyperOptimizer(**cotengra_kwargs)
 
     def run_qaoa(self, shots):
@@ -138,8 +139,10 @@ class QAOA_Launcher:
                 problem=self.problem,
             )
 
+        optimizer = ctg.HyperOptimizer(**self.cotengra_kwargs)
+
         start_sampling = time.time()
-        counts = circ.sample(shots, backend=self.backend)
+        counts = circ.sample(shots, optimize=optimizer, backend=self.backend)
 
         counts_list = []
         for count in counts:
