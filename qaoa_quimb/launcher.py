@@ -34,7 +34,6 @@ class QAOA_Launcher:
         backend="numpy",
         cotengra_kwargs={
             "methods": "kahypar",
-            "reconf_opts": {},
             "max_repeats": 32,
             "parallel": True,
             "max_time": "rate:1e6",
@@ -62,7 +61,7 @@ class QAOA_Launcher:
         self.cotengra_kwargs = cotengra_kwargs
         self.opt = ctg.ReusableHyperOptimizer(**cotengra_kwargs)
 
-    def run_qaoa(self, shots):
+    def run_qaoa(self):
         """
         Run the qaoa.
         """
@@ -120,6 +119,32 @@ class QAOA_Launcher:
         )
         end_energy = time.time()
 
+        compute_time = {
+            "initialization": end_ini - start_ini,
+            "contraction path": end_path - start_path,
+            "minimisation": end_minim - start_minim,
+            "energy": end_energy - start_energy,
+        }
+
+        return energy, theta, compute_time
+
+    def run_and_sample_qaoa(
+            self, 
+            shots, 
+            cotengra_kwargs={
+            "methods": "greedy",
+            "max_repeats": 32,
+            "parallel": True,
+            "max_time": "rate:1e6",
+            "overwrite": True
+        },
+    ):
+        """
+        Run and sample the qaoa.
+        """
+
+        energy, theta, compute_time = self.run_qaoa()
+
         if self.mps:
             psi0 = create_qaoa_mps(
                 self.G,
@@ -140,17 +165,12 @@ class QAOA_Launcher:
                 problem=self.problem,
             )
 
+        opt = ctg.ReusableHyperOptimizer(**cotengra_kwargs)
+
         start_sampling = time.time()
-        # maybe use "hyper" optimize argument
-        counts = Counter(circ.sample(shots, optimize=None, backend=self.backend))
+        counts = Counter(circ.sample(shots, optimize=opt, backend=self.backend))
         end_sampling = time.time()
 
-        compute_time = {
-            "initialization": end_ini - start_ini,
-            "contraction path": end_path - start_path,
-            "minimisation": end_minim - start_minim,
-            "energy": end_energy - start_energy,
-            "sampling": end_sampling - start_sampling,
-        }
+        compute_time["sampling"] = end_sampling - start_sampling
 
         return counts, energy, theta, compute_time
