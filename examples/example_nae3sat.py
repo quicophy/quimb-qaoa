@@ -77,7 +77,7 @@ tau = -0.8*numqubit*alpha
 
 # slicing and compression parameters
 target_size = None
-max_bond = 8
+max_bond = None
 
 # cotengra parameters
 cotengra_kwargs = {

@@ -63,15 +63,15 @@ class QAOA_Launcher:
         """
 
         start_path = time.time()
-        # rehearse_qaoa_circ(
-        #     self.G,
-        #     self.p,
-        #     qaoa_version=self.qaoa_version,
-        #     problem=self.problem,
-        #     mps=self.mps,
-        #     opt=self.opt,
-        #     backend=self.backend,
-        # )
+        rehearse_qaoa_circ(
+            self.G,
+            self.p,
+            qaoa_version=self.qaoa_version,
+            problem=self.problem,
+            mps=self.mps,
+            opt=self.opt,
+            backend=self.backend,
+        )
         end_path = time.time()
 
         start_ini = time.time()

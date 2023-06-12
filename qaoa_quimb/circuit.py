@@ -65,11 +65,6 @@ def create_regular_qaoa_circ(
     circ = qtn.Circuit(n, **circuit_opts)
     circ.apply_gates(gates)
 
-    # print(circ.psi)
-
-    # circ.psi.compress_all()
-    # print(circ.psi)
-
     return circ
 
 
