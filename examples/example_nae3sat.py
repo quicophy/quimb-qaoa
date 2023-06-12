@@ -6,7 +6,6 @@ Example for solving the NAE 3-SAT problem with QAOA.
 import numpy as np
 import cotengra as ctg
 import qecstruct as qs
-import matplotlib.pyplot as plt
 import time
 
 from qaoa_quimb.launcher import QAOA_Launcher
@@ -60,23 +59,30 @@ class bicubic_graph:
 
 # PARAMETERS
 
+# problem parameters
 numqubit = 5
 alpha = 1
-seed = 12345
-
-p = 2
+p = 1
 ini_method = "tqa"
 qaoa_version = "regular"
 problem = "nae3sat"
+seed = 12345
+
+# optimization parameters
 mps = False
 optimizer = "SLSQP"
-tau = -0.8 * numqubit
 backend = "numpy"
-shots = 1024
+shots = 10000
+tau = -0.8*numqubit
 
+# slicing and compression parameters
+target_size = None
+max_bond = 8
+
+# cotengra parameters
 cotengra_kwargs = {
-    # "minimize":'flops',
-    "methods": ["greedy", "kahypar"],
+    "minimize":'flops',
+    "methods": ["kahypar"],
     "reconf_opts": {},
     "optlib": "random",
     "max_repeats": 32,
@@ -84,26 +90,45 @@ cotengra_kwargs = {
     "max_time": "rate:1e6",
 }
 
+opt = ctg.ReusableHyperOptimizer(**cotengra_kwargs)
+
+if target_size is not None:
+    cotengra_kwargs.pop("reconf_opts")
+    cotengra_kwargs["slicing_reconf_opts"] = {"target_size":target_size,}
+
+    opt = ctg.ReusableHyperOptimizer(**cotengra_kwargs)
+
+if max_bond is not None:
+    cotengra_kwargs.pop("reconf_opts")
+    cotengra_kwargs["chi"] = max_bond
+    cotengra_kwargs["minimize"] = 'max-compressed'
+    cotengra_kwargs["methods"] = ['greedy-compressed', 'greedy-span']
+
+    opt = ctg.ReusableHyperCompressedOptimizer(**cotengra_kwargs)
+
+                                        
+# REHEARSAL AND PREPARATION
+
 numcau = alpha * numqubit
 G = bicubic_graph(numqubit, numcau, 3, 3, seed)
 
+# draw_qaoa_circ(G, p, qaoa_version=qaoa_version, problem=problem)
+
+# width, cost = rehearse_qaoa_circ(
+#     G,
+#     p,
+#     qaoa_version=qaoa_version,
+#     problem=problem,
+#     mps=mps,
+#     opt=opt,
+#     backend=backend,
+# )
+
+# print("Width :", width)
+# print("Cost :", cost)
+
+
 # MAIN
-
-draw_qaoa_circ(G, p, qaoa_version=qaoa_version, problem=problem)
-
-opt = ctg.ReusableHyperOptimizer(**cotengra_kwargs)
-width, cost = rehearse_qaoa_circ(
-    G,
-    p,
-    qaoa_version=qaoa_version,
-    problem=problem,
-    mps=mps,
-    opt=opt,
-    backend=backend,
-)
-
-print("Width :", width)
-print("Cost :", cost)
 
 start = time.time()
 counts, energy, theta, compute_time = QAOA_Launcher(
@@ -113,11 +138,12 @@ counts, energy, theta, compute_time = QAOA_Launcher(
     ini_method=ini_method,
     problem=problem,
     mps=mps,
+    max_bond=max_bond,
     optimizer=optimizer,
     tau=tau,
     backend=backend,
-    cotengra_kwargs=cotengra_kwargs,
-).run_qaoa(shots)
+    opt=opt,
+).run_and_sample_qaoa(shots, target_size=target_size)
 end = time.time()
 
 print("Energy :", energy)

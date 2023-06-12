@@ -56,15 +56,17 @@ def create_regular_qaoa_mps(
 
         for coef, op, qubit in zip(coefs, ops, qubits):
             if op == "rzz":
-                psi0.gate_with_auto_swap_(coef * RZZ(gammas[d]), qubit)
+                psi0.gate_with_auto_swap_(RZZ(coef * gammas[d]), qubit)
 
             elif op == "rz":
-                psi0.gate_with_auto_swap_(coef * RZ(gammas[d]), qubit)
+                psi0.gate_with_auto_swap_(RZ(coef * gammas[d]), qubit)
 
         # mixer Hamiltonian
         for i in range(n):
             psi0.gate_(RX(-2 * betas[d]), i, contract="swap+split", tags="RX")
 
+        psi0.normalize()
+    
     return psi0
 
 
@@ -99,10 +101,10 @@ def create_gm_qaoa_mps(
 
         for coef, op, qubit in zip(coefs, ops, qubits):
             if op == "rzz":
-                psi0.gate_with_auto_swap_(coef * RZZ(gammas[d]), qubit)
+                psi0.gate_with_auto_swap_(RZZ(coef * gammas[d]), qubit)
 
             elif op == "rz":
-                psi0.gate_with_auto_swap_(coef * RZ(gammas[d]), qubit)
+                psi0.gate_with_auto_swap_(RZ(coef * gammas[d]), qubit)
 
         # mixer Hamiltonian
         for i in range(n):
@@ -120,11 +122,12 @@ def create_gm_qaoa_mps(
         psi = NCRZ.apply(psi0)
         del psi0
 
-        psi.normalize()
 
         for i in range(n):
             psi.gate_(X(), i, contract="swap+split", tags="X")
             psi.gate_(H(), i, contract="swap+split", tags="H")
+
+        psi.normalize()
 
         psi0 = psi
         del psi

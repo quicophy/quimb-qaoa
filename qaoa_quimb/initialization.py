@@ -15,6 +15,7 @@ def ini(
     qaoa_version="regular",
     problem="nae3sat",
     mps=False,
+    max_bond=None,
     opt=None,
     backend="numpy",
 ):
@@ -31,6 +32,7 @@ def ini(
             qaoa_version=qaoa_version,
             problem=problem,
             mps=mps,
+            max_bond=max_bond,
             opt=opt,
             backend=backend,
         )
@@ -64,6 +66,7 @@ def TQA_ini(
     qaoa_version="regular",
     problem="nae3sat",
     mps=False,
+    max_bond=None,
     opt=None,
     backend="numpy",
 ):
@@ -93,6 +96,7 @@ def TQA_ini(
                 qaoa_version=qaoa_version,
                 problem=problem,
                 mps=mps,
+                max_bond=max_bond,
                 opt=opt,
                 backend=backend,
             )

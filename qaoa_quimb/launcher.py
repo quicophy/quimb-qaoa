@@ -3,7 +3,6 @@ Launcher for QAOA.
 """
 
 
-import cotengra as ctg
 import quimb.tensor as qtn
 from collections import Counter
 import time
@@ -14,6 +13,7 @@ from .mps import create_qaoa_mps
 from .contraction import compute_energy, minimize_energy
 from .utils import rehearse_qaoa_circ
 from .decomp import *
+from .circuit import *
 
 
 class QAOA_Launcher:
@@ -29,15 +29,11 @@ class QAOA_Launcher:
         ini_method="tqa",
         problem="nae3sat",
         mps=False,
+        max_bond=None,
         optimizer="SLSQP",
         tau=None,
         backend="numpy",
-        cotengra_kwargs={
-            "methods": "kahypar",
-            "max_repeats": 32,
-            "parallel": True,
-            "max_time": "rate:1e6",
-        },
+        opt=None,
     ):
         """
         Args:
@@ -55,11 +51,11 @@ class QAOA_Launcher:
         self.ini_method = ini_method
         self.problem = problem
         self.mps = mps
+        self.max_bond = max_bond
         self.optimizer = optimizer
         self.tau = tau
         self.backend = backend
-        self.cotengra_kwargs = cotengra_kwargs
-        self.opt = ctg.ReusableHyperOptimizer(**cotengra_kwargs)
+        self.opt = opt
 
     def run_qaoa(self):
         """
@@ -67,15 +63,15 @@ class QAOA_Launcher:
         """
 
         start_path = time.time()
-        rehearse_qaoa_circ(
-            self.G,
-            self.p,
-            qaoa_version=self.qaoa_version,
-            problem=self.problem,
-            mps=self.mps,
-            opt=self.opt,
-            backend=self.backend,
-        )
+        # rehearse_qaoa_circ(
+        #     self.G,
+        #     self.p,
+        #     qaoa_version=self.qaoa_version,
+        #     problem=self.problem,
+        #     mps=self.mps,
+        #     opt=self.opt,
+        #     backend=self.backend,
+        # )
         end_path = time.time()
 
         start_ini = time.time()
@@ -86,6 +82,7 @@ class QAOA_Launcher:
             qaoa_version=self.qaoa_version,
             problem=self.problem,
             mps=self.mps,
+            max_bond=self.max_bond,
             opt=self.opt,
             backend=self.backend,
         )
@@ -100,6 +97,7 @@ class QAOA_Launcher:
             qaoa_version=self.qaoa_version,
             problem=self.problem,
             mps=self.mps,
+            max_bond=self.max_bond,
             optimizer=self.optimizer,
             opt=self.opt,
             backend=self.backend,
@@ -114,6 +112,7 @@ class QAOA_Launcher:
             qaoa_version=self.qaoa_version,
             problem=self.problem,
             mps=self.mps,
+            max_bond=self.max_bond,
             opt=self.opt,
             backend=self.backend,
         )
@@ -128,17 +127,7 @@ class QAOA_Launcher:
 
         return energy, theta, compute_time
 
-    def run_and_sample_qaoa(
-            self, 
-            shots, 
-            cotengra_kwargs={
-            "methods": "greedy",
-            "max_repeats": 32,
-            "parallel": True,
-            "max_time": "rate:1e6",
-            "overwrite": True
-        },
-    ):
+    def run_and_sample_qaoa(self, shots, target_size=None):
         """
         Run and sample the qaoa.
         """
@@ -165,10 +154,8 @@ class QAOA_Launcher:
                 problem=self.problem,
             )
 
-        opt = ctg.ReusableHyperOptimizer(**cotengra_kwargs)
-
         start_sampling = time.time()
-        counts = Counter(circ.sample(shots, optimize=opt, backend=self.backend))
+        counts = Counter(circ.sample(shots, backend=self.backend, target_size=target_size))
         end_sampling = time.time()
 
         compute_time["sampling"] = end_sampling - start_sampling

@@ -10,50 +10,20 @@ from .circuit import create_qaoa_circ
 from .mps import create_qaoa_mps
 from .hamiltonian import hamiltonian
 
+def compute_energy(x, p, G, qaoa_version="regular", problem="nae3sat", mps=False, max_bond=None, opt=None, backend="numpy"):
 
-def compute_energy(
-    x,
-    p,
-    G,
-    qaoa_version="regular",
-    problem="nae3sat",
-    mps=False,
-    opt=None,
-    backend="numpy",
-):
-    """
-    Compute the energy of a qaoa circuit or a qaoa mps based on user input.
-    """
-
-    if mps:
-        energy = compute_energy_mps(
-            x,
-            p,
-            G,
-            qaoa_version=qaoa_version,
-            problem=problem,
-            opt=opt,
-            backend=backend,
-        )
+    if max_bond is None:
+        energy = compute_exact_energy(x, p, G, qaoa_version=qaoa_version, problem=problem, mps=mps, opt=opt, backend=backend)
     else:
-        energy = compute_energy_circ(
-            x,
-            p,
-            G,
-            qaoa_version=qaoa_version,
-            problem=problem,
-            opt=opt,
-            backend=backend,
-        )
-
+        energy = compute_approx_energy(x, p, G, max_bond, qaoa_version=qaoa_version, problem=problem, mps=mps, opt=opt, backend=backend)
     return energy
 
 
-def compute_energy_circ(
-    x, p, G, qaoa_version="regular", problem="nae3sat", opt=None, backend="numpy"
+def compute_exact_energy(
+    x, p, G, qaoa_version="regular", problem="nae3sat", mps=False, opt=None, backend="numpy"
 ):
     """
-    Find the expectation value of the problem Hamiltonian with the mps unitary parameters.
+    Find the expectation value of the problem Hamiltonian with the unitary parameters.
 
     Args:
         x: list of unitary parameters
@@ -64,21 +34,26 @@ def compute_energy_circ(
 
     hamil = hamiltonian(G, problem)
     ops, qubits = hamil.operators()
-    circ = create_qaoa_circ(G, p, gammas, betas, qaoa_version, problem=problem)
 
-    ens = [
+    if mps:
+        psi = create_qaoa_mps(G, p, gammas, betas, qaoa_version, problem=problem)
+        ens = [
+        psi.local_expectation_exact(op, qubit, optimize=opt, backend=backend)
+        for (op, qubit) in zip(ops, qubits)
+    ]
+    
+    else:
+        circ = create_qaoa_circ(G, p, gammas, betas, qaoa_version, problem=problem)
+        ens = [
         circ.local_expectation(op, qubit, optimize=opt, backend=backend)
         for (op, qubit) in zip(ops, qubits)
     ]
 
     return sum(ens).real
 
-
-def compute_energy_mps(
-    x, p, G, qaoa_version="regular", problem="nae3sat", opt=None, backend="numpy"
-):
+def compute_approx_energy(x, p, G, max_bond, qaoa_version="regular", problem="nae3sat", mps=False, opt=None, backend="numpy"):
     """
-    Find the expectation value of the problem Hamiltonian with the circuit unitary parameters.
+    Find the compressed expectation value of the problem Hamiltonian with the unitary parameters.
 
     Args:
         x: list of unitary parameters
@@ -90,12 +65,31 @@ def compute_energy_mps(
     hamil = hamiltonian(G, problem)
     ops, qubits = hamil.operators()
 
-    psi = create_qaoa_mps(G, p, gammas, betas, qaoa_version, problem=problem)
+    if mps:
+        psi = create_qaoa_mps(G, p, gammas, betas, qaoa_version, problem=problem)
 
-    ens = [
-        psi.local_expectation_exact(op, qubit, optimize=opt, backend=backend)
-        for (op, qubit) in zip(ops, qubits)
-    ]
+        ens = []
+
+        for (op, qubit) in zip(ops, qubits):
+
+            contracted_value = psi.local_expectation(op, qubit, max_bond, optimize=opt, backend=backend)
+
+            ens.append(contracted_value)
+    
+    else:
+        circ = create_qaoa_circ(G, p, gammas, betas, qaoa_version, problem=problem)
+
+        ens = []
+
+        for (op, qubit) in zip(ops, qubits):
+
+            tn = circ.local_expectation_tn(op, qubit, simplify_sequence='')
+            tn.compress_simplify(inplace=True)
+            tn.hyperinds_resolve(inplace=True)
+
+            contracted_value = tn.contract_compressed(optimize=opt, max_bond=max_bond)
+
+            ens.append(contracted_value)
 
     return sum(ens).real
 
@@ -108,6 +102,7 @@ def minimize_energy(
     qaoa_version="regular",
     problem="nae3sat",
     mps=False,
+    max_bond=None,
     optimizer="SLSQP",
     opt=None,
     backend="numpy",
@@ -116,7 +111,7 @@ def minimize_energy(
     Minimize the expectation value of the problem Hamiltonian. The actual computation is not rehearsed - the contraction widths and costs of each energy term are not pre-computed.
     """
 
-    args = (p, G, qaoa_version, problem, mps, opt, backend)
+    args = (p, G, qaoa_version, problem, mps, max_bond, opt, backend)
 
     if tau is None:
         res = minimize(compute_energy, x0=theta_ini, method=optimizer, args=args)
