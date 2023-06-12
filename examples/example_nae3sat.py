@@ -73,7 +73,7 @@ mps = False
 optimizer = "SLSQP"
 backend = "numpy"
 shots = 10000
-tau = -0.8*numqubit
+tau = -0.8*numqubit*alpha
 
 # slicing and compression parameters
 target_size = None
@@ -112,20 +112,20 @@ if max_bond is not None:
 numcau = alpha * numqubit
 G = bicubic_graph(numqubit, numcau, 3, 3, seed)
 
-# draw_qaoa_circ(G, p, qaoa_version=qaoa_version, problem=problem)
+draw_qaoa_circ(G, p, qaoa_version=qaoa_version, problem=problem)
 
-# width, cost = rehearse_qaoa_circ(
-#     G,
-#     p,
-#     qaoa_version=qaoa_version,
-#     problem=problem,
-#     mps=mps,
-#     opt=opt,
-#     backend=backend,
-# )
+width, cost = rehearse_qaoa_circ(
+    G,
+    p,
+    qaoa_version=qaoa_version,
+    problem=problem,
+    mps=mps,
+    opt=opt,
+    backend=backend,
+)
 
-# print("Width :", width)
-# print("Cost :", cost)
+print("Width :", width)
+print("Cost :", cost)
 
 
 # MAIN

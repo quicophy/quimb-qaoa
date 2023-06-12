@@ -155,7 +155,9 @@ class QAOA_Launcher:
             )
 
         start_sampling = time.time()
-        counts = Counter(circ.sample(shots, backend=self.backend, target_size=target_size))
+        counts = Counter(
+            circ.sample(shots, backend=self.backend, target_size=target_size)
+        )
         end_sampling = time.time()
 
         compute_time["sampling"] = end_sampling - start_sampling

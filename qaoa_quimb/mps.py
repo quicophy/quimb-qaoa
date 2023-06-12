@@ -66,7 +66,7 @@ def create_regular_qaoa_mps(
             psi0.gate_(RX(-2 * betas[d]), i, contract="swap+split", tags="RX")
 
         psi0.normalize()
-    
+
     return psi0
 
 
@@ -121,7 +121,6 @@ def create_gm_qaoa_mps(
 
         psi = NCRZ.apply(psi0)
         del psi0
-
 
         for i in range(n):
             psi.gate_(X(), i, contract="swap+split", tags="X")
