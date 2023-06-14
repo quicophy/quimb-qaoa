@@ -49,9 +49,8 @@ class QAOA_Launcher:
         self.tau = tau
         self.backend = backend
         self.compute_time = {}
-
-        self.ini = False
-        self.ran = False
+        self.theta_ini = None
+        self.theta_opt = None
 
     def initialize_qaoa(self, ini_method="tqa", opt=None, mps=False):
         """
@@ -89,8 +88,6 @@ class QAOA_Launcher:
 
         self.theta_ini = theta_ini
 
-        self.ini = True
-
         return theta_ini
 
     def run_qaoa(self, opt=None, mps=False):
@@ -98,8 +95,8 @@ class QAOA_Launcher:
         Run the qaoa.
         """
 
-        if not self.ini:
-            raise ValueError("Please initialize the QAOA before running.")
+        if self.theta_ini is None:
+            raise ValueError("Please initialize QAOA before running.")
 
         start_minim = time.time()
         theta_opt = minimize_energy(
@@ -137,8 +134,6 @@ class QAOA_Launcher:
         self.energy = energy
         self.theta_opt = theta_opt
 
-        self.ran = True
-
         return energy, theta_opt
 
     def sample_qaoa(self, shots, opt=None, mps=True):
@@ -146,13 +141,14 @@ class QAOA_Launcher:
         Sample the qaoa.
         """
 
-        if not self.ini:
-            raise ValueError("Please initialize the QAOA before sampling.")
-
-        if self.ran:
+        if self.theta_opt is not None:
             theta = self.theta_opt
-        else:
+        elif self.theta_ini is not None:
             theta = self.theta_ini
+        else:
+            raise ValueError(
+                "Please initialize or initialize and run QAOA before sampling."
+            )
 
         if mps:
             psi0 = create_qaoa_mps(
