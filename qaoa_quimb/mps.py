@@ -59,7 +59,12 @@ def create_regular_qaoa_mps(
                 psi0.gate_with_auto_swap_(RZZ(coef * gammas[d]), qubit)
 
             elif op == "rz":
-                psi0.gate_with_auto_swap_(RZ(coef * gammas[d]), qubit)
+                psi0.gate_(
+                    qu.phase_gate(coef * gammas[d]),
+                    qubit,
+                    contract="swap+split",
+                    tags="RZ",
+                )
 
         # mixer Hamiltonian
         for i in range(n):
@@ -104,7 +109,7 @@ def create_gm_qaoa_mps(
                 psi0.gate_with_auto_swap_(RZZ(coef * gammas[d]), qubit)
 
             elif op == "rz":
-                psi0.gate_with_auto_swap_(RZ(coef * gammas[d]), qubit)
+                psi0.gate_with_auto_swap_(qu.phase_gate(coef * gammas[d]), qubit)
 
         # mixer Hamiltonian
         for i in range(n):

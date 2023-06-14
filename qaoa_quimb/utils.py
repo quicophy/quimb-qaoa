@@ -48,6 +48,9 @@ def rehearse_qaoa_circ(
     gammas = theta_ini[:p]
     betas = theta_ini[p:]
 
+    hamil = hamiltonian(G, problem)
+    ops, qubits = hamil.operators()
+
     if mps:
         psi0 = create_qaoa_mps(
             G,
@@ -57,24 +60,33 @@ def rehearse_qaoa_circ(
             qaoa_version=qaoa_version,
             problem=problem,
         )
-        circ = qtn.Circuit(G.numnodes, psi0=psi0)
+
+        local_exp_rehs = [
+            psi0.local_expectation_exact(
+                op, qubit, optimize=opt, backend=backend, rehearse=True
+            )
+            for (op, qubit) in zip(ops, qubits)
+        ]
+
+        width = [0]
+        cost = np.nan
+
     else:
         circ = create_qaoa_circ(
             G, p, gammas, betas, qaoa_version=qaoa_version, problem=problem
         )
 
-    hamil = hamiltonian(G, problem)
-    ops, qubits = hamil.operators()
+        local_exp_rehs = [
+            circ.local_expectation(
+                op, qubit, optimize=opt, backend=backend, rehearse=True
+            )
+            for (op, qubit) in zip(ops, qubits)
+        ]
 
-    local_exp_rehs = [
-        circ.local_expectation_rehearse(op, qubit, optimize=opt, backend=backend)
-        for (op, qubit) in zip(ops, qubits)
-    ]
-
-    width = []
-    cost = 0
-    for rehs in local_exp_rehs:
-        width.append(rehs["W"])
-        cost += 10 ** (rehs["C"])
+        width = []
+        cost = 0
+        for rehs in local_exp_rehs:
+            width.append(rehs["W"])
+            cost += 10 ** (rehs["C"])
 
     return min(width), np.log10(cost)

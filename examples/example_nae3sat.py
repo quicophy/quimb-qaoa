@@ -60,7 +60,7 @@ class bicubic_graph:
 # PARAMETERS
 
 # problem parameters
-numqubit = 5
+numqubit = 15
 alpha = 1
 p = 1
 ini_method = "tqa"
@@ -69,19 +69,23 @@ problem = "nae3sat"
 seed = 12345
 
 # optimization parameters
-mps = False
+contract_mps = False
+sampling_mps = True
 optimizer = "SLSQP"
 backend = "numpy"
 shots = 10000
-tau = -0.8*numqubit*alpha
+tau = -0.8 * numqubit * alpha
 
 # slicing and compression parameters
-target_size = None
+target_size = 2**28
 max_bond = None
 
-# cotengra parameters
-cotengra_kwargs = {
-    "minimize":'flops',
+
+# COTENGRA PARAMETERS
+
+# contraction parameters
+contract_kwargs = {
+    "minimize": "flops",
     "methods": ["kahypar"],
     "reconf_opts": {},
     "optlib": "random",
@@ -90,60 +94,96 @@ cotengra_kwargs = {
     "max_time": "rate:1e6",
 }
 
-opt = ctg.ReusableHyperOptimizer(**cotengra_kwargs)
+contract_opt = ctg.ReusableHyperOptimizer(**contract_kwargs)
 
 if target_size is not None:
-    cotengra_kwargs.pop("reconf_opts")
-    cotengra_kwargs["slicing_reconf_opts"] = {"target_size":target_size,}
+    contract_kwargs.pop("reconf_opts")
+    contract_kwargs["slicing_reconf_opts"] = {
+        "target_size": target_size,
+    }
 
-    opt = ctg.ReusableHyperOptimizer(**cotengra_kwargs)
+    contract_opt = ctg.ReusableHyperOptimizer(**contract_kwargs)
 
 if max_bond is not None:
-    cotengra_kwargs.pop("reconf_opts")
-    cotengra_kwargs["chi"] = max_bond
-    cotengra_kwargs["minimize"] = 'max-compressed'
-    cotengra_kwargs["methods"] = ['greedy-compressed', 'greedy-span']
+    contract_kwargs["chi"] = max_bond
+    contract_kwargs["minimize"] = "max-compressed"
+    contract_kwargs["methods"] = ["greedy-compressed", "greedy-span"]
 
-    opt = ctg.ReusableHyperCompressedOptimizer(**cotengra_kwargs)
+    contract_opt = ctg.ReusableHyperCompressedOptimizer(**contract_kwargs)
 
-                                        
+# sampling parameters
+sampling_kwargs = {
+    "minimize": "flops",
+    "methods": ["greedy"],
+    "reconf_opts": {},
+    "optlib": "random",
+    "max_repeats": 32,
+    "parallel": True,
+    "max_time": "rate:1e6",
+    "overwrite": True,
+}
+
+sampling_opt = ctg.ReusableHyperOptimizer(**sampling_kwargs)
+
+if target_size is not None:
+    sampling_kwargs.pop("reconf_opts")
+    sampling_kwargs["slicing_reconf_opts"] = {
+        "target_size": target_size,
+    }
+
+    sampling_opt = ctg.ReusableHyperOptimizer(**sampling_kwargs)
+
+if max_bond is not None:
+    sampling_kwargs["chi"] = max_bond
+    sampling_kwargs["minimize"] = "max-compressed"
+    sampling_kwargs["methods"] = ["greedy-compressed", "greedy-span"]
+
+    sampling_opt = ctg.ReusableHyperCompressedOptimizer(**sampling_kwargs)
+
+
 # REHEARSAL AND PREPARATION
 
 numcau = alpha * numqubit
 G = bicubic_graph(numqubit, numcau, 3, 3, seed)
 
-draw_qaoa_circ(G, p, qaoa_version=qaoa_version, problem=problem)
+# draw_qaoa_circ(G, p, qaoa_version=qaoa_version, problem=problem)
 
-width, cost = rehearse_qaoa_circ(
-    G,
-    p,
-    qaoa_version=qaoa_version,
-    problem=problem,
-    mps=mps,
-    opt=opt,
-    backend=backend,
-)
+# width, cost = rehearse_qaoa_circ(
+#     G,
+#     p,
+#     qaoa_version=qaoa_version,
+#     problem=problem,
+#     mps=contract_mps,
+#     opt=contract_opt,
+#     backend=backend,
+# )
 
-print("Width :", width)
-print("Cost :", cost)
+# print("Width :", width)
+# print("Cost :", cost)
 
 
 # MAIN
 
 start = time.time()
-counts, energy, theta, compute_time = QAOA_Launcher(
+QAOA = QAOA_Launcher(
     G,
     p,
     qaoa_version=qaoa_version,
-    ini_method=ini_method,
     problem=problem,
-    mps=mps,
     max_bond=max_bond,
     optimizer=optimizer,
     tau=tau,
     backend=backend,
-    opt=opt,
-).run_and_sample_qaoa(shots, target_size=target_size)
+)
+theta_ini = QAOA.initialize_qaoa(
+    ini_method=ini_method, opt=contract_opt, mps=contract_mps
+)
+print("Initialization is done!")
+energy, theta = QAOA.run_qaoa(opt=contract_opt, mps=contract_mps)
+print("Optimization is done!")
+counts = QAOA.sample_qaoa(shots, opt=sampling_opt, mps=sampling_mps)
+compute_time = QAOA.compute_time
+print("Sampling is done!")
 end = time.time()
 
 print("Energy :", energy)
