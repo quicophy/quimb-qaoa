@@ -26,115 +26,131 @@ class QAOA_Launcher:
         G,
         p,
         qaoa_version="regular",
-        ini_method="tqa",
         problem="nae3sat",
-        mps=False,
         max_bond=None,
         optimizer="SLSQP",
         tau=None,
         backend="numpy",
-        opt=None,
     ):
         """
         Args:
         G: graph object
         theta_ini: initial list of unitary parameters
-        A: parameter of the ising model
         shots: number of circuit samples
         optimizer: scipy optimizer
-        simulator: qiskit optimizer
         """
 
         self.G = G
         self.p = p
         self.qaoa_version = qaoa_version
-        self.ini_method = ini_method
         self.problem = problem
-        self.mps = mps
         self.max_bond = max_bond
         self.optimizer = optimizer
         self.tau = tau
         self.backend = backend
-        self.opt = opt
+        self.compute_time = {}
+        self.theta_ini = None
+        self.theta_opt = None
 
-    def run_qaoa(self):
+    def initialize_qaoa(self, ini_method="tqa", opt=None, mps=False):
         """
-        Run the qaoa.
+        Initialize QAOA.
         """
 
-        start_path = time.time()
-        rehearse_qaoa_circ(
-            self.G,
-            self.p,
-            qaoa_version=self.qaoa_version,
-            problem=self.problem,
-            mps=self.mps,
-            opt=self.opt,
-            backend=self.backend,
-        )
-        end_path = time.time()
+        # start_path = time.time()
+        # rehearse_qaoa_circ(
+        #     self.G,
+        #     self.p,
+        #     qaoa_version=self.qaoa_version,
+        #     problem=self.problem,
+        #     mps=mps,
+        #     opt=opt,
+        #     backend=self.backend,
+        # )
+        # end_path = time.time()
 
         start_ini = time.time()
         theta_ini = ini(
             self.G,
             self.p,
-            self.ini_method,
+            ini_method,
             qaoa_version=self.qaoa_version,
             problem=self.problem,
-            mps=self.mps,
+            mps=mps,
             max_bond=self.max_bond,
-            opt=self.opt,
+            opt=opt,
             backend=self.backend,
         )
         end_ini = time.time()
 
+        # self.compute_time["contraction path"] = end_path - start_path
+        self.compute_time["initialization"] = end_ini - start_ini
+
+        self.theta_ini = theta_ini
+
+        return theta_ini
+
+    def run_qaoa(self, opt=None, mps=False):
+        """
+        Run the qaoa.
+        """
+
+        if self.theta_ini is None:
+            raise ValueError("Please initialize QAOA before running.")
+
         start_minim = time.time()
-        theta = minimize_energy(
-            theta_ini,
+        theta_opt = minimize_energy(
+            self.theta_ini,
             self.p,
             self.G,
             tau=self.tau,
             qaoa_version=self.qaoa_version,
             problem=self.problem,
-            mps=self.mps,
+            mps=mps,
             max_bond=self.max_bond,
             optimizer=self.optimizer,
-            opt=self.opt,
+            opt=opt,
             backend=self.backend,
         )
         end_minim = time.time()
 
         start_energy = time.time()
         energy = compute_energy(
-            theta,
+            theta_opt,
             self.p,
             self.G,
             qaoa_version=self.qaoa_version,
             problem=self.problem,
-            mps=self.mps,
+            mps=mps,
             max_bond=self.max_bond,
-            opt=self.opt,
+            opt=opt,
             backend=self.backend,
         )
         end_energy = time.time()
 
-        compute_time = {
-            "initialization": end_ini - start_ini,
-            "contraction path": end_path - start_path,
-            "minimisation": end_minim - start_minim,
-            "energy": end_energy - start_energy,
-        }
+        self.compute_time["minimisation"] = end_minim - start_minim
+        self.compute_time["energy"] = end_energy - start_energy
 
-        return energy, theta, compute_time
+        self.energy = energy
+        self.theta_opt = theta_opt
 
-    def run_and_sample_qaoa(self, shots, target_size=None):
+        return energy, theta_opt
+
+    def sample_qaoa(self, shots, opt=None, mps=True):
         """
-        Run and sample the qaoa.
+        Sample the qaoa.
         """
 
-        energy, theta, compute_time = self.run_qaoa()
+        if self.theta_opt is not None:
+            theta = self.theta_opt
+        elif self.theta_ini is not None:
+            theta = self.theta_ini
+        else:
+            raise ValueError(
+                "Please initialize or initialize and run QAOA before sampling."
+            )
 
-        if self.mps:
+        if mps:
             psi0 = create_qaoa_mps(
                 self.G,
                 self.p,
@@ -143,7 +159,7 @@ class QAOA_Launcher:
                 qaoa_version=self.qaoa_version,
                 problem=self.problem,
             )
-            circ = qtn.Circuit(self.G.numnodes, psi0=psi0)
+            circ = qtn.Circuit(psi0=psi0)
         else:
             circ = create_qaoa_circ(
                 self.G,
@@ -155,11 +171,10 @@ class QAOA_Launcher:
             )
 
         start_sampling = time.time()
-        counts = Counter(
-            circ.sample(shots, backend=self.backend, target_size=target_size)
-        )
+        counts = Counter(circ.sample(shots, optimize=opt, backend=self.backend))
         end_sampling = time.time()
 
-        compute_time["sampling"] = end_sampling - start_sampling
+        self.compute_time["sampling"] = end_sampling - start_sampling
+        self.counts = counts
 
-        return counts, energy, theta, compute_time
+        return counts

@@ -1,72 +1,26 @@
 """
-Example for solving the NAE 3-SAT problem with QAOA.
+Example for solving the MAXCUT problem with QAOA.
 """
 
 
-import numpy as np
+import networkx as nx
 import cotengra as ctg
-import qecstruct as qs
+import matplotlib.pyplot as plt
 import time
 
 from qaoa_quimb.launcher import QAOA_Launcher
 from qaoa_quimb.utils import draw_qaoa_circ, rehearse_qaoa_circ
 
 
-class bicubic_graph:
-    """
-    This class instantiates a random bicubic graph representating a NAE3SAT problem using qecstruct. It then maps the bicubic graph to an Ising graph using the Ising formulation of the NA3SAT problem.
-    """
-
-    def __init__(self, numvar, numcau, vardeg, caudeg, seed):
-        """
-        Args:
-        numvar: number of variables
-        numcau: number of causes
-        vardeg: variables degree
-        caudeg: causes degree
-        """
-
-        # samples a random bicubic graph
-        code = qs.random_regular_code(numvar, numcau, vardeg, caudeg, qs.Rng(seed))
-
-        # write the 3SAT formula and find the edges of the ising graph
-        cf = []
-        edges = []
-        for row in code.par_mat().rows():
-            temp_cf = []
-            for value in row:
-                temp_cf.append(value)
-            cf.append(temp_cf)
-            edges.append([temp_cf[0], temp_cf[1]])
-            edges.append([temp_cf[1], temp_cf[2]])
-            edges.append([temp_cf[2], temp_cf[0]])
-        edges = sorted(edges)
-
-        # 3SAT formula
-        self.cf = np.array(cf) + 1
-        # NA3SAT formula
-        self.cf_nae = np.vstack((self.cf, np.invert(self.cf) + 1))
-        # edges of the ising graph
-        self.edges = np.array(edges)
-        # number of variables
-        self.numnodes = numvar
-        # dictionary of edges of the ising graph
-        terms = {}
-        for i, j in edges:
-            terms[(i, j)] = terms.get((i, j), 0) + 1
-        self.terms = terms
-
-
 # PARAMETERS
 
 # problem parameters
-numqubit = 25
-alpha = 1
-p = 3
+numqubit = 54
+p = 4
 ini_method = "tqa"
 qaoa_version = "regular"
 problem = "nae3sat"
-seed = 12345
+seed = 666
 
 # optimization parameters
 contract_mps = False
@@ -74,10 +28,10 @@ sampling_mps = True
 optimizer = "SLSQP"
 backend = "numpy"
 shots = 10000
-tau = -0.8 * numqubit * alpha
+tau = None
 
 # slicing and compression parameters
-target_size = 2**28
+target_size = None
 max_bond = None
 
 
@@ -85,11 +39,11 @@ max_bond = None
 
 # contraction parameters
 contract_kwargs = {
-    "minimize": "flops",
+    # "minimize": "flops",
     "methods": ["greedy"],
     "reconf_opts": {},
-    "optlib": "random",
-    "max_repeats": 6,
+    # "optlib": "random",
+    "max_repeats": 32,
     "parallel": True,
     "max_time": "rate:1e6",
 }
@@ -142,10 +96,11 @@ if max_bond is not None:
 
 # REHEARSAL AND PREPARATION
 
-numcau = alpha * numqubit
-G = bicubic_graph(numqubit, numcau, 3, 3, seed)
+G = nx.random_regular_graph(3, numqubit, seed=seed)
+G.numnodes = G.order()
+G.terms = {(i, j): 1 for i, j in G.edges}
 
-# draw_qaoa_circ(G, p, qaoa_version=qaoa_version, problem=problem)
+draw_qaoa_circ(G, p, qaoa_version=qaoa_version, problem=problem)
 
 width, cost, local_exp_rehs = rehearse_qaoa_circ(
     G,

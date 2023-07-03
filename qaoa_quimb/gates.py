@@ -24,10 +24,6 @@ def X():
     return qu.pauli("X")
 
 
-def RZZ(gamma):
-    return rzz_param_gen([gamma])
-
-
 def RZ(beta):
     RZ = np.zeros((2, 2, 1, 2), dtype="complex")
     RZ[0, 0, 0, 0] = 1

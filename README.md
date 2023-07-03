@@ -1,6 +1,6 @@
 # QAOA-QUIMB
 
-This librairy implements an optimized version of the Quantum Approximate Optimization Algorithm (QAOA) and various extensions with Quimb.
+This library implements an optimized version of the Quantum Approximate Optimization Algorithm (QAOA) and various extensions with Quimb.
 
 ## Installation
 
