@@ -15,15 +15,15 @@ from qaoa_quimb.utils import draw_qaoa_circ, rehearse_qaoa_circ
 # GENERAL PARAMETERS
 
 # problem parameters
-numqubit = 3
-p = 1
+numqubit = 5
+p = 2
 ini_method = "tqa"
 qaoa_version = "regular"
 problem = "genome"
 seed = 12345
 
 # optimization parameters
-contract_mps = False
+contract_mps = True
 sampling_mps = True
 optimizer = "SLSQP"
 backend = "numpy"
@@ -31,7 +31,7 @@ shots = 10000
 tau = None
 
 # slicing and compression parameters
-target_size = None
+target_size = 2 * 32
 max_bond = None
 
 
@@ -40,10 +40,10 @@ max_bond = None
 # contraction parameters
 contract_kwargs = {
     "minimize": "flops",
-    "methods": ["kahypar"],
+    "methods": ["greedy"],
     "reconf_opts": {},
     "optlib": "random",
-    "max_repeats": 32,
+    "max_repeats": 5,
     "parallel": True,
     "max_time": "rate:1e6",
 }
@@ -74,7 +74,6 @@ sampling_kwargs = {
     "max_repeats": 32,
     "parallel": True,
     "max_time": "rate:1e6",
-    "overwrite": True,
 }
 
 sampling_opt = ctg.ReusableHyperOptimizer(**sampling_kwargs)
@@ -97,14 +96,14 @@ if max_bond is not None:
 
 # REHEARSAL AND PREPARATION
 
-G = nx.erdos_renyi_graph(numqubit, 0.6, seed=seed)
+G = nx.erdos_renyi_graph(numqubit, 0.5, seed=seed)
 G.numnodes = G.order()
 G.terms = {(i, j): 1 for (i, j) in G.edges}
 
 nx.draw(G, with_labels=True)
-# plt.show()
+plt.show()
 
-# draw_qaoa_circ(G, p, qaoa_version=qaoa_version, problem=problem)
+draw_qaoa_circ(G, p, qaoa_version=qaoa_version, problem=problem)
 
 width, cost = rehearse_qaoa_circ(
     G,

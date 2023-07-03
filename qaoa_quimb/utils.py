@@ -2,9 +2,9 @@
 Misc utility functions.
 """
 
-
-import quimb.tensor as qtn
+import quimb as qu
 import numpy as np
+import matplotlib.pyplot as plt
 
 from .initialization import rand_ini
 from .circuit import create_qaoa_circ
@@ -38,6 +38,7 @@ def rehearse_qaoa_circ(
     mps=False,
     opt=None,
     backend="numpy",
+    draw=False,
 ):
     """
     Rehearse the contraction of the QAOA circuit and compute the maximal intermediary tensor width and total contraction cost of the best contraction path.
@@ -77,9 +78,7 @@ def rehearse_qaoa_circ(
         )
 
         local_exp_rehs = [
-            circ.local_expectation(
-                op, qubit, optimize=opt, backend=backend, rehearse=True
-            )
+            circ.local_expectation_rehearse(op, qubit, optimize=opt, backend=backend)
             for (op, qubit) in zip(ops, qubits)
         ]
 
@@ -89,4 +88,17 @@ def rehearse_qaoa_circ(
             width.append(rehs["W"])
             cost += 10 ** (rehs["C"])
 
-    return min(width), np.log10(cost)
+    if draw:
+        with plt.style.context(qu.NEUTRAL_STYLE):
+            fig, ax1 = plt.subplots()
+            ax1.plot([rehs["W"] for rehs in local_exp_rehs], color="green")
+            ax1.set_ylabel("contraction width, $W$, [log2]", color="green")
+            ax1.tick_params(axis="y", labelcolor="green")
+
+            ax2 = ax1.twinx()
+            ax2.plot([rehs["C"] for rehs in local_exp_rehs], color="orange")
+            ax2.set_ylabel("contraction cost, $C$, [log10]", color="orange")
+            ax2.tick_params(axis="y", labelcolor="orange")
+            plt.show()
+
+    return max(width), np.log10(cost), local_exp_rehs

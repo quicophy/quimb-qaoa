@@ -53,6 +53,7 @@ def create_regular_qaoa_circ(
         gates.append((0, "h", i))
 
     coefs, ops, qubits = hamil.gates()
+
     for d in range(p):
         # problem Hamiltonian
         for coef, op, qubit in zip(coefs, ops, qubits):
@@ -97,11 +98,11 @@ def create_gm_qaoa_circ(
 
     circ.apply_gates(gates)
 
+    # problem Hamiltonian
+    coefs, ops, qubits = hamil.gates()
+
     for d in range(p):
         gates = []
-
-        # problem Hamiltonian
-        coefs, ops, qubits = hamil.gates()
 
         for coef, op, qubit in zip(coefs, ops, qubits):
             gates.append((d, op, coef * gammas[d], *qubit))

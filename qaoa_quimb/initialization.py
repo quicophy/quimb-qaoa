@@ -76,7 +76,7 @@ def TQA_ini(
     Returns:
         theta_ini: list of random unitary parameters
     """
-    print("Optimizer is :", opt)
+
     times = np.linspace(0.1, 3, 20)
 
     energies = []
@@ -101,7 +101,7 @@ def TQA_ini(
                 backend=backend,
             )
         )
-        print("One esnergy done!")
+
     idx = np.argmin(energies)
     t_max = times[idx]
 
