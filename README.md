@@ -13,7 +13,7 @@ pip install qaoa-quimb
 To install the developpement version (recommended):
 
 ```
-pip install qaoa-quimb@git+https://github.com/juliendrapeau/qaoa-quimb
+pip install qaoa-quimb@git+https://github.com/quicophy/qaoa-quimb
 ```
 
 ## References
