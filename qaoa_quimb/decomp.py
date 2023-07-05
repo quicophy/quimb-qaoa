@@ -298,18 +298,35 @@ def _trim_and_renorm_svd_result_numba(
     return U, None, VH
 
 
-@svd_truncated.register("numpy")
-def svd_truncated_numpy(x, cutoff=-1.0, cutoff_mode=3, max_bond=-1, absorb=0, renorm=0):
+@njit  # pragma: no cover
+def svd_truncated_numba(
+    x, cutoff=-1.0, cutoff_mode=3, max_bond=-1, absorb=0, renorm=0
+):
     """Accelerated version of ``svd_truncated`` for numpy arrays."""
-
-    try:
-        U, s, VH = sp.linalg.svd(x, full_matrices=False, lapack_driver="gesdd")
-    except:
-        U, s, VH = sp.linalg.svd(x, full_matrices=False, lapack_driver="gesvd")
-
+    U, s, VH = np.linalg.svd(x, full_matrices=False)
     return _trim_and_renorm_svd_result_numba(
         U, s, VH, cutoff, cutoff_mode, max_bond, absorb, renorm
     )
+
+
+def svd_truncated_scipy(
+    x, cutoff=-1.0, cutoff_mode=3, max_bond=-1, absorb=0, renorm=0
+):
+    """Non-accelerated version of ``svd_truncated`` for numpy arrays with guaranteed convergence by scipy."""
+    U, s, VH = sp.linalg.svd(x, full_matrices=False, lapack_driver="gesvd")
+    return _trim_and_renorm_svd_result_numba(
+        U, s, VH, cutoff, cutoff_mode, max_bond, absorb, renorm
+    )
+
+
+@svd_truncated.register("numpy")
+def svd_truncated_numba_scipy(x, cutoff=-1.0, cutoff_mode=3, max_bond=-1, absorb=0, renorm=0):
+    """Accelerated version of ``svd_truncated`` for numpy arrays with guaranteed convergence by scipy."""
+
+    try:
+        return svd_truncated_numba(x, cutoff, cutoff_mode, max_bond, absorb, renorm)
+    except:
+        return svd_truncated_scipy(x, cutoff, cutoff_mode, max_bond, absorb, renorm)
 
 
 @svd_truncated.register("autoray.lazy")
@@ -390,17 +407,7 @@ def lu_truncated(
 
 def svdvals(x):
     """SVD-decomposition, but return singular values only."""
-    print("tes")
-    try:
-        vals = sp.linalg.svd(
-            x, full_matrices=False, compute_uv=False, lapack_driver="gesdd"
-        )
-    except:
-        vals = sp.linalg.svd(
-            x, full_matrices=False, compute_uv=False, lapack_driver="gesvd"
-        )
-
-    return vals
+    return np.linalg.svd(x, full_matrices=False, compute_uv=False)
 
 
 @njit  # pragma: no cover
