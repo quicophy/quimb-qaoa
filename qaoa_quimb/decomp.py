@@ -299,9 +299,7 @@ def _trim_and_renorm_svd_result_numba(
 
 
 @njit  # pragma: no cover
-def svd_truncated_numba(
-    x, cutoff=-1.0, cutoff_mode=3, max_bond=-1, absorb=0, renorm=0
-):
+def svd_truncated_numba(x, cutoff=-1.0, cutoff_mode=3, max_bond=-1, absorb=0, renorm=0):
     """Accelerated version of ``svd_truncated`` for numpy arrays."""
     U, s, VH = np.linalg.svd(x, full_matrices=False)
     return _trim_and_renorm_svd_result_numba(
@@ -309,9 +307,7 @@ def svd_truncated_numba(
     )
 
 
-def svd_truncated_scipy(
-    x, cutoff=-1.0, cutoff_mode=3, max_bond=-1, absorb=0, renorm=0
-):
+def svd_truncated_scipy(x, cutoff=-1.0, cutoff_mode=3, max_bond=-1, absorb=0, renorm=0):
     """Non-accelerated version of ``svd_truncated`` for numpy arrays with guaranteed convergence by scipy."""
     U, s, VH = sp.linalg.svd(x, full_matrices=False, lapack_driver="gesvd")
     return _trim_and_renorm_svd_result_numba(
@@ -320,7 +316,9 @@ def svd_truncated_scipy(
 
 
 @svd_truncated.register("numpy")
-def svd_truncated_numba_scipy(x, cutoff=-1.0, cutoff_mode=3, max_bond=-1, absorb=0, renorm=0):
+def svd_truncated_numba_scipy(
+    x, cutoff=-1.0, cutoff_mode=3, max_bond=-1, absorb=0, renorm=0
+):
     """Accelerated version of ``svd_truncated`` for numpy arrays with guaranteed convergence by scipy."""
 
     try:

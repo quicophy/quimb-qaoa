@@ -16,7 +16,7 @@ from .decomp import *
 from .circuit import *
 
 
-class QAOA_Launcher:
+class QAOALauncher:
     """
     This class regroups the main methods of the regular QAOA algorithm applied to a particular problem. It instantiates a QAOA object for a specific graph with the necessary properties "numnodes" and "edges".
     """

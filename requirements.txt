@@ -16,6 +16,7 @@ llvmlite==0.40.0
 Mako==1.2.4
 MarkupSafe==2.1.2
 matplotlib==3.7.1
+matrex==0.0.1
 networkx==3.1
 numba==0.57.0
 numpy==1.24.3

@@ -12,6 +12,7 @@ from .mps import create_qaoa_mps
 from .hamiltonian import hamiltonian
 from .decomp import *
 
+
 def draw_qaoa_circ(G, p, qaoa_version="regular", problem="nae3sat"):
     """
     Draw the QAOA circuit.
@@ -78,12 +79,21 @@ def rehearse_qaoa_circ(
         if draw:
             with plt.style.context(qu.NEUTRAL_STYLE):
                 fig, ax1 = plt.subplots()
-                ax1.plot([np.log2(int(rehs.largest_intermediate)) for rehs in local_exp_rehs], color="green")
+                ax1.plot(
+                    [
+                        np.log2(int(rehs.largest_intermediate))
+                        for rehs in local_exp_rehs
+                    ],
+                    color="green",
+                )
                 ax1.set_ylabel("contraction width, $W$, [log2]", color="green")
                 ax1.tick_params(axis="y", labelcolor="green")
 
                 ax2 = ax1.twinx()
-                ax2.plot([np.log10(rehs.opt_cost / 2) for rehs in local_exp_rehs], color="orange")
+                ax2.plot(
+                    [np.log10(rehs.opt_cost / 2) for rehs in local_exp_rehs],
+                    color="orange",
+                )
                 ax2.set_ylabel("contraction cost, $C$, [log10]", color="orange")
                 ax2.tick_params(axis="y", labelcolor="orange")
                 plt.show()
@@ -94,7 +104,9 @@ def rehearse_qaoa_circ(
         )
 
         local_exp_rehs = [
-            circ.local_expectation(op, qubit, optimize=opt, backend=backend, rehearse=True)
+            circ.local_expectation(
+                op, qubit, optimize=opt, backend=backend, rehearse=True
+            )
             for (op, qubit) in zip(ops, qubits)
         ]
 

@@ -4,7 +4,7 @@ Creation of the gates for quantum circuits
 
 
 import quimb as qu
-from quimb.tensor.circuit import rzz_param_gen, rx_gate_param_gen
+from quimb.tensor.circuit import rzz_param_gen, rx_gate_param_gen, rz_gate_param_gen
 import numpy as np
 
 
@@ -19,10 +19,14 @@ def RZZ(gamma):
 def RX(beta):
     return rx_gate_param_gen([beta])
 
+def RZ_circ(gamma):
+    return rz_gate_param_gen([gamma])
 
 def X():
     return qu.pauli("X")
 
+# def RZ(beta):
+#     return rz_gate_param_gen(beta)
 
 def RZ(beta):
     RZ = np.zeros((2, 2, 1, 2), dtype="complex")

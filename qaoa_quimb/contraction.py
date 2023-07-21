@@ -100,7 +100,7 @@ def compute_approx_energy(
     backend="numpy",
 ):
     """
-    Find the compressed expectation value of the problem Hamiltonian with the unitary parameters.
+    UNTESTED. Find the compressed expectation value of the problem Hamiltonian with the unitary parameters.
 
     Args:
         x: list of unitary parameters
