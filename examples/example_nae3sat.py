@@ -6,13 +6,15 @@ Example for solving the NAE 3-SAT problem with QAOA.
 import numpy as np
 import cotengra as ctg
 import qecstruct as qs
+import matplotlib.pyplot as plt
+import networkx as nx
 import time
 
-from qaoa_quimb.launcher import QAOA_Launcher
+from qaoa_quimb.launcher import QAOALauncher
 from qaoa_quimb.utils import draw_qaoa_circ, rehearse_qaoa_circ
 
 
-class bicubic_graph:
+class Nae3satGraph:
     """
     This class instantiates a random bicubic graph representating a NAE3SAT problem using qecstruct. It then maps the bicubic graph to an Ising graph using the Ising formulation of the NA3SAT problem.
     """
@@ -60,24 +62,25 @@ class bicubic_graph:
 # PARAMETERS
 
 # problem parameters
-numqubit = 25
+numqubit = 5
 alpha = 1
-p = 3
+p = 2
 ini_method = "tqa"
 qaoa_version = "regular"
 problem = "nae3sat"
-seed = 12345
+seed = 666
 
 # optimization parameters
 contract_mps = False
 sampling_mps = True
 optimizer = "SLSQP"
 backend = "numpy"
-shots = 10000
-tau = -0.8 * numqubit * alpha
+shots = 1000
+tau = -0.9 * numqubit * alpha
+tau = None
 
 # slicing and compression parameters
-target_size = 2**28
+target_size = None
 max_bond = None
 
 
@@ -89,7 +92,7 @@ contract_kwargs = {
     "methods": ["greedy"],
     "reconf_opts": {},
     "optlib": "random",
-    "max_repeats": 6,
+    "max_repeats": 32,
     "parallel": True,
     "max_time": "rate:1e6",
 }
@@ -143,9 +146,13 @@ if max_bond is not None:
 # REHEARSAL AND PREPARATION
 
 numcau = alpha * numqubit
-G = bicubic_graph(numqubit, numcau, 3, 3, seed)
+G = Nae3satGraph(numqubit, numcau, 3, 3, seed)
 
-# draw_qaoa_circ(G, p, qaoa_version=qaoa_version, problem=problem)
+nx_G = nx.Graph(G.edges.tolist())
+nx.draw(nx_G)
+plt.show()
+
+draw_qaoa_circ(G, p, qaoa_version=qaoa_version, problem=problem)
 
 width, cost, local_exp_rehs = rehearse_qaoa_circ(
     G,
@@ -165,7 +172,7 @@ print("Cost :", cost)
 # MAIN
 
 start = time.time()
-QAOA = QAOA_Launcher(
+QAOA = QAOALauncher(
     G,
     p,
     qaoa_version=qaoa_version,

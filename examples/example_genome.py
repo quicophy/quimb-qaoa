@@ -8,34 +8,34 @@ import cotengra as ctg
 import matplotlib.pyplot as plt
 import time
 
-from qaoa_quimb.launcher import QAOA_Launcher
+from qaoa_quimb.launcher import QAOALauncher
 from qaoa_quimb.utils import draw_qaoa_circ, rehearse_qaoa_circ
 
 
 # GENERAL PARAMETERS
 
 # problem parameters
-numqubit = 5
-p = 2
+numqubit = 3
+p = 1
 ini_method = "tqa"
 qaoa_version = "regular"
 problem = "genome"
 seed = 12345
 
 # optimization parameters
-contract_mps = True
+contract_mps = False
 sampling_mps = True
 optimizer = "SLSQP"
 backend = "numpy"
-shots = 10000
+shots = 100
 tau = None
 
 # slicing and compression parameters
-target_size = 2 * 32
+target_size = None
 max_bond = None
 
 
-# COTENGRA PARAMETERS
+# COTENGRA PARAMETERSz
 
 # contraction parameters
 contract_kwargs = {
@@ -43,7 +43,7 @@ contract_kwargs = {
     "methods": ["greedy"],
     "reconf_opts": {},
     "optlib": "random",
-    "max_repeats": 5,
+    "max_repeats": 32,
     "parallel": True,
     "max_time": "rate:1e6",
 }
@@ -96,7 +96,7 @@ if max_bond is not None:
 
 # REHEARSAL AND PREPARATION
 
-G = nx.erdos_renyi_graph(numqubit, 0.5, seed=seed)
+G = nx.erdos_renyi_graph(numqubit, 0.6, seed=seed)
 G.numnodes = G.order()
 G.terms = {(i, j): 1 for (i, j) in G.edges}
 
@@ -105,7 +105,7 @@ plt.show()
 
 draw_qaoa_circ(G, p, qaoa_version=qaoa_version, problem=problem)
 
-width, cost = rehearse_qaoa_circ(
+width, cost, local_exp_rehs = rehearse_qaoa_circ(
     G,
     p,
     qaoa_version=qaoa_version,
@@ -113,6 +113,7 @@ width, cost = rehearse_qaoa_circ(
     mps=contract_mps,
     opt=contract_opt,
     backend=backend,
+    draw=True,
 )
 
 print("Width :", width)
@@ -122,7 +123,7 @@ print("Cost :", cost)
 # MAIN
 
 start = time.time()
-QAOA = QAOA_Launcher(
+QAOA = QAOALauncher(
     G,
     p,
     qaoa_version=qaoa_version,

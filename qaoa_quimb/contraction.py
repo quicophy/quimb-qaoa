@@ -22,6 +22,10 @@ def compute_energy(
     opt=None,
     backend="numpy",
 ):
+    """
+    Computes the correct energy value of a qaoa circuit based on user input.
+    """
+
     if max_bond is None:
         energy = compute_exact_energy(
             x,

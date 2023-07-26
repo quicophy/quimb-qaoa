@@ -8,18 +8,18 @@ import cotengra as ctg
 import matplotlib.pyplot as plt
 import time
 
-from qaoa_quimb.launcher import QAOA_Launcher
+from qaoa_quimb.launcher import QAOALauncher
 from qaoa_quimb.utils import draw_qaoa_circ, rehearse_qaoa_circ
 
 
 # PARAMETERS
 
 # problem parameters
-numqubit = 54
-p = 4
+numqubit = 6
+p = 3
 ini_method = "tqa"
 qaoa_version = "regular"
-problem = "nae3sat"
+problem = "maxcut"
 seed = 666
 
 # optimization parameters
@@ -100,6 +100,9 @@ G = nx.random_regular_graph(3, numqubit, seed=seed)
 G.numnodes = G.order()
 G.terms = {(i, j): 1 for i, j in G.edges}
 
+nx.draw(G)
+plt.show()
+
 draw_qaoa_circ(G, p, qaoa_version=qaoa_version, problem=problem)
 
 width, cost, local_exp_rehs = rehearse_qaoa_circ(
@@ -120,7 +123,7 @@ print("Cost :", cost)
 # MAIN
 
 start = time.time()
-QAOA = QAOA_Launcher(
+QAOA = QAOALauncher(
     G,
     p,
     qaoa_version=qaoa_version,

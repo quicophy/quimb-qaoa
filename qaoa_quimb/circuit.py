@@ -46,7 +46,6 @@ def create_regular_qaoa_circ(
     circuit_opts["gate_opts"].setdefault("contract", False)
 
     hamil = hamiltonian(G, problem)
-
     n = hamil.numqubit
 
     circ = qtn.Circuit(n, **circuit_opts)
@@ -57,12 +56,8 @@ def create_regular_qaoa_circ(
     for i in range(n):
         gates.append((0, "h", i))
 
-    circ.apply_gates(gates)
-
-    # problem Hamiltonian
     for d in range(p):
-        gates = []
-
+        # problem Hamiltonian
         coefs, ops, qubits = hamil.gates()
 
         for coef, op, qubit in zip(coefs, ops, qubits):
@@ -73,7 +68,7 @@ def create_regular_qaoa_circ(
         for i in range(n):
             gates.append((d, "rx", -betas[d] * 2, i))
 
-        circ.apply_gates(gates)
+    circ.apply_gates(gates)
 
     return circ
 
@@ -87,14 +82,16 @@ def create_gm_qaoa_circ(
     **circuit_opts,
 ):
     """
-    ONLY VALID UP TO 14 QUBITS. Creates a parametrized grover-mixer qaoa circuit.
+    ONLY WORKS UP TO AROUND 14 QUBITS. Creates a parametrized grover-mixer qaoa circuit.
+
+    Returns:
+        circ: quantum circuit
     """
 
     circuit_opts.setdefault("gate_opts", {})
     circuit_opts["gate_opts"].setdefault("contract", False)
 
     hamil = hamiltonian(G, problem)
-
     n = hamil.numqubit
 
     circ = qtn.Circuit(n, **circuit_opts)
@@ -107,13 +104,11 @@ def create_gm_qaoa_circ(
 
     circ.apply_gates(gates)
 
-    # problem Hamiltonian
     for d in range(p):
         gates = []
 
-        # coefs, ops, qubits = hamil.gates(gammas[d])
+        # problem Hamiltonian
         coefs, ops, qubits = hamil.gates()
-
         for coef, op, qubit in zip(coefs, ops, qubits):
             # circ.apply_gate_raw(op, qubit, gate_round=d)
             gates.append((d, op, coef * gammas[d], *qubit))
@@ -125,9 +120,9 @@ def create_gm_qaoa_circ(
 
         circ.apply_gates(gates)
 
-        C = qu.ncontrolled_gate(n - 1, qu.rotation(-betas[d] * 2), sparse=False)
+        ncrz_gate = qu.ncontrolled_gate(n - 1, qu.rotation(-betas[d] * 2), sparse=False)
 
-        circ.apply_gate_raw(C, range(0, n), gate_round=d)
+        circ.apply_gate_raw(ncrz_gate, range(0, n), gate_round=d, tags="NCRZ")
 
         gates = []
 
@@ -139,6 +134,7 @@ def create_gm_qaoa_circ(
 
     return circ
 
+
 def create_qgm_qaoa_circ(
     G,
     p,
@@ -149,13 +145,15 @@ def create_qgm_qaoa_circ(
 ):
     """
     Creates a parametrized quasi-grover-mixer qaoa circuit.
+
+    Returns:
+        circ: quantum circuit
     """
 
     circuit_opts.setdefault("gate_opts", {})
     circuit_opts["gate_opts"].setdefault("contract", False)
 
     hamil = hamiltonian(G, problem)
-
     n = hamil.numqubit
 
     circ = qtn.Circuit(n, **circuit_opts)
@@ -168,11 +166,10 @@ def create_qgm_qaoa_circ(
 
     circ.apply_gates(gates)
 
-    # problem Hamiltonian
     for d in range(p):
         gates = []
 
-        # coefs, ops, qubits = hamil.gates(gammas[d])
+        # problem Hamiltonian
         coefs, ops, qubits = hamil.gates()
 
         for coef, op, qubit in zip(coefs, ops, qubits):
@@ -186,12 +183,12 @@ def create_qgm_qaoa_circ(
 
         circ.apply_gates(gates)
 
-        new_gate = np.zeros((2,2), dtype=complex)
-        new_gate[0,0] = 1
-        new_gate[1,1] = np.exp(1j*betas[d]/n)
-        
+        qgm_gate = np.zeros((2, 2), dtype=complex)
+        qgm_gate[0, 0] = 1
+        qgm_gate[1, 1] = np.exp(1j * betas[d] / n)
+
         for i in range(n):
-            circ.apply_gate_raw(new_gate, (i,), gate_round=d)
+            circ.apply_gate_raw(qgm_gate, (i,), gate_round=d, tags="QGM")
 
         gates = []
 

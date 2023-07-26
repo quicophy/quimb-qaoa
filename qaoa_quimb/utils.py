@@ -24,10 +24,10 @@ def draw_qaoa_circ(G, p, qaoa_version="regular", problem="nae3sat"):
         G, p, theta_ini[:p], theta_ini[p:], qaoa_version=qaoa_version, problem=problem
     )
 
-    circ.psi.draw(color=["PSI0", "H", "X", "RX", "RZ", "RZZ"])
+    circ.psi.draw(color=["PSI0", "H", "X", "RX", "RZ", "RZZ", "NCRZ", "QGM"])
 
     circ.get_rdm_lightcone_simplified(range(G.numnodes)).draw(
-        color=["PSI0", "H", "X", "RX", "RZ", "RZZ"], show_tags=False
+        color=["PSI0", "H", "X", "RX", "RZ", "RZZ", "NCRZ", "QGM"], show_tags=False
     )
 
 

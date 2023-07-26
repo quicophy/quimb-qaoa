@@ -34,10 +34,10 @@ class QAOALauncher:
     ):
         """
         Args:
-        G: graph object
-        theta_ini: initial list of unitary parameters
-        shots: number of circuit samples
-        optimizer: scipy optimizer
+            G: graph object
+            theta_ini: initial list of unitary parameters
+            shots: number of circuit samples
+            optimizer: scipy optimizer
         """
 
         self.G = G
@@ -57,17 +57,17 @@ class QAOALauncher:
         Initialize QAOA.
         """
 
-        # start_path = time.time()
-        # rehearse_qaoa_circ(
-        #     self.G,
-        #     self.p,
-        #     qaoa_version=self.qaoa_version,
-        #     problem=self.problem,
-        #     mps=mps,
-        #     opt=opt,
-        #     backend=self.backend,
-        # )
-        # end_path = time.time()
+        start_path = time.time()
+        rehearse_qaoa_circ(
+            self.G,
+            self.p,
+            qaoa_version=self.qaoa_version,
+            problem=self.problem,
+            mps=mps,
+            opt=opt,
+            backend=self.backend,
+        )
+        end_path = time.time()
 
         start_ini = time.time()
         theta_ini = ini(
@@ -83,7 +83,7 @@ class QAOALauncher:
         )
         end_ini = time.time()
 
-        # self.compute_time["contraction path"] = end_path - start_path
+        self.compute_time["contraction path"] = end_path - start_path
         self.compute_time["initialization"] = end_ini - start_ini
 
         self.theta_ini = theta_ini
