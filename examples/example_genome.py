@@ -16,18 +16,18 @@ from qaoa_quimb.utils import draw_qaoa_circ, rehearse_qaoa_circ
 
 # problem parameters
 numqubit = 3
-p = 1
+p = 2
 ini_method = "tqa"
 qaoa_version = "regular"
 problem = "genome"
 seed = 12345
 
 # optimization parameters
-contract_mps = False
+contract_mps = True
 sampling_mps = True
 optimizer = "SLSQP"
 backend = "numpy"
-shots = 100
+shots = 1000
 tau = None
 
 # slicing and compression parameters
@@ -35,7 +35,7 @@ target_size = None
 max_bond = None
 
 
-# COTENGRA PARAMETERSz
+# COTENGRA PARAMETERS
 
 # contraction parameters
 contract_kwargs = {

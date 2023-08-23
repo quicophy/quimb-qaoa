@@ -48,14 +48,14 @@ def create_regular_qaoa_mps(
     # initial MPS
     psi0 = MPS_computational_state("0" * n, tags="PSI0")
 
+    coefs, ops, qubits = hamil.gates()
+
     # layer of hadamards to get into plus state
     for i in range(n):
         psi0.gate_(qu.hadamard(), i, contract="swap+split", tags="H")
 
     for d in range(p):
         # problem Hamiltonian
-        coefs, ops, qubits = hamil.gates()
-
         for coef, op, qubit in zip(coefs, ops, qubits):
             if op == "rzz":
                 psi0.gate_with_auto_swap_(rzz_param_gen([coef * gammas[d]]), qubit)
@@ -213,8 +213,8 @@ def RZ(beta):
     RZ = np.zeros((2, 2, 1, 2), dtype="complex")
     RZ[0, 0, 0, 0] = 1
     RZ[1, 1, 0, 0] = 1
-    RZ[0, 0, 0, 1] = np.cos(-beta * 2 / 2) - 1.0j * np.sin(-beta * 2 / 2)
-    RZ[1, 1, 0, 1] = np.cos(-beta * 2 / 2) + 1.0j * np.sin(-beta * 2 / 2)
+    RZ[0, 0, 0, 1] = 1
+    RZ[1, 1, 0, 1] = np.exp(-1j * beta)
     return RZ
 
 

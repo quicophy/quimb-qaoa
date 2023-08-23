@@ -162,6 +162,12 @@ def minimize_energy(
     Minimize the expectation value of the problem Hamiltonian. The actual computation is not rehearsed - the contraction widths and costs of each energy term are not pre-computed.
     """
 
+    eps = 1e-6
+    # bounds = (
+    #     [(-np.pi / 2 + eps, np.pi / 2 - eps)] * p +
+    #     [(-np.pi / 4 + eps, np.pi / 4 - eps)] * p
+    # )
+
     args = (p, G, qaoa_version, problem, mps, max_bond, opt, backend)
 
     if tau is None:

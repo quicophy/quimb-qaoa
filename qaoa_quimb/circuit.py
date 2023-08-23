@@ -56,7 +56,11 @@ def create_regular_qaoa_circ(
     for i in range(n):
         gates.append((0, "h", i))
 
+    circ.apply_gates(gates)
+
     for d in range(p):
+        gates = []
+
         # problem Hamiltonian
         coefs, ops, qubits = hamil.gates()
 
@@ -68,7 +72,7 @@ def create_regular_qaoa_circ(
         for i in range(n):
             gates.append((d, "rx", -betas[d] * 2, i))
 
-    circ.apply_gates(gates)
+        circ.apply_gates(gates)
 
     return circ
 
@@ -120,8 +124,9 @@ def create_gm_qaoa_circ(
 
         circ.apply_gates(gates)
 
-        ncrz_gate = qu.ncontrolled_gate(n - 1, qu.rotation(-betas[d] * 2), sparse=False)
-
+        ncrz_gate = np.eye(2**n, dtype=complex)
+        ncrz_gate[-1, -1] = np.exp(-1j * betas[d])
+        # ncrz_gate = qu.ncontrolled_gate(n - 1, qu.rotation(-betas[d] * 2), sparse=False)
         circ.apply_gate_raw(ncrz_gate, range(0, n), gate_round=d, tags="NCRZ")
 
         gates = []

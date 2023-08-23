@@ -5,8 +5,6 @@ Implementation of the problem Hamiltonian of QAOA for different problems.
 
 import quimb as qu
 
-from .relabelling import relabelling
-
 
 def hamiltonian(G, problem):
     """
@@ -15,6 +13,9 @@ def hamiltonian(G, problem):
 
     if problem == "nae3sat":
         return IsingHamiltonian(G)
+
+    elif problem == "mono1in3sat":
+        return IsingWithFieldHamiltonian(G)
 
     elif problem == "mono2sat":
         return IsingWithFieldHamiltonian(G)
@@ -38,7 +39,6 @@ class IsingHamiltonian:
         self.G = G
 
         rzz_gates = self.cost_hamiltonian()
-        # rzz_gates = relabelling(self.numqubit, rzz_gates)
 
         self.rzz_gates = rzz_gates
 
@@ -73,21 +73,20 @@ class IsingHamiltonian:
         for qubit, value in self.rzz_gates.items():
             qubits.append(qubit)
             ops.append("rzz")
-            coefs.append(-value)
+            coefs.append(-1 / 2 * value)
 
         return coefs, ops, qubits
 
 
 class IsingWithFieldHamiltonian:
     """
-    UNTESTED. Implementation of the problem Hamiltonian for the NAE 3-SAT problem.
+    Implementation of the problem Hamiltonian for the NAE 3-SAT problem.
     """
 
     def __init__(self, G):
         self.G = G
 
         rz_gates, rzz_gates = self.cost_hamiltonian()
-        # rzz_gates = relabelling(self.numqubit, rzz_gates)
 
         self.rz_gates = rz_gates
         self.rzz_gates = rzz_gates
@@ -112,14 +111,31 @@ class IsingWithFieldHamiltonian:
     def operators(self):
         qubits = []
         ops = []
-
-        for qubit, value in self.rz_gates.items():
-            qubits.append(qubit)
-            ops.append(value * qu.pauli("Z"))
+        localham_rz = {}
+        localham_rzz = {}
 
         for qubit, value in self.rzz_gates.items():
             qubits.append(qubit)
             ops.append(value * qu.pauli("Z") & qu.pauli("Z"))
+            localham_rzz[qubit] = value * qu.pauli("Z") & qu.pauli("Z")
+
+        for qubit, value in self.rz_gates.items():
+            qubits.append(qubit)
+            ops.append(value * qu.pauli("Z"))
+            localham_rz[qubit[0]] = value * qu.pauli("Z")
+
+        # for qubit, value in self.rzz_gates.items():
+        #     qubits.append(qubit)
+        #     ops.append((qu.eye(4) + (qu.pauli("Z") & qu.eye(2))) @ (qu.eye(4) + (qu.eye(2) & qu.pauli("Z"))))
+
+        localham = qu.tensor.LocalHamGen(localham_rzz, H1=localham_rz)
+
+        qubits = []
+        ops = []
+
+        for qubit, op in localham.items():
+            qubits.append(qubit)
+            ops.append(op)
 
         return ops, qubits
 
@@ -127,16 +143,32 @@ class IsingWithFieldHamiltonian:
         qubits = []
         ops = []
         coefs = []
+        localham_rzz = {}
+        localham_rz = {}
+
+        for qubit, value in self.rzz_gates.items():
+            qubits.append(qubit)
+            ops.append("rzz")
+            coefs.append(-1 / 2 * value)
+        #     localham_rzz[qubit] = rzz_param_gen([value*gamma]).reshape((4,4))
 
         for qubit, value in self.rz_gates.items():
             qubits.append(qubit)
             ops.append("rz")
             coefs.append(value)
+            # localham_rz[qubit[0]] = rz_gate_param_gen([value*gamma])
 
-        for qubit, value in self.rzz_gates.items():
-            qubits.append(qubit)
-            ops.append("rzz")
-            coefs.append(value)
+        # localham = qu.tensor.LocalHamGen(localham_rzz, H1=localham_rz)
+
+        # qubits = []
+        # ops = []
+        # coefs = []
+
+        # import numpy as np
+        # for qubit, op in localham.items():
+        #     qubits.append(qubit)
+        #     ops.append(op)
+        #     coefs.append(None)
 
         return coefs, ops, qubits
 
@@ -165,7 +197,7 @@ class GenomeHamiltonian:
 
         # Hamiltonian 1
         for i in range(n**2):
-            rz_gates[(i,)] = rz_gates.get((i,), 0) + 1 / 2
+            rz_gates[(i,)] = rz_gates.get((i,), 0) + 1
 
         # Hamiltonian 2
         for j in range(1, n):
@@ -174,12 +206,12 @@ class GenomeHamiltonian:
                     if j == s:
                         continue
 
-                    rz_gates[(v * n + j,)] = rz_gates.get((v * n + j,), 0) - 1 / 4
+                    rz_gates[(v * n + j,)] = rz_gates.get((v * n + j,), 0) - 1 / 2
 
-                    rz_gates[(v * n + s,)] = rz_gates.get((v * n + s,), 0) - 1 / 4
+                    rz_gates[(v * n + s,)] = rz_gates.get((v * n + s,), 0) - 1 / 2
 
                     rzz_gates[(v * n + j, v * n + s)] = (
-                        rzz_gates.get((v * n + j, v * n + s), 0) + 1 / 4
+                        rzz_gates.get((v * n + j, v * n + s), 0) + 1 / 2
                     )
 
         # Hamiltonian 3
@@ -189,12 +221,12 @@ class GenomeHamiltonian:
                     if v == s:
                         continue
 
-                    rz_gates[(v * n + j,)] = rz_gates.get((v * n + j,), 0) - 1 / 4
+                    rz_gates[(v * n + j,)] = rz_gates.get((v * n + j,), 0) - 1 / 2
 
-                    rz_gates[(s * n + j,)] = rz_gates.get((s * n + j,), 0) - 1 / 4
+                    rz_gates[(s * n + j,)] = rz_gates.get((s * n + j,), 0) - 1 / 2
 
                     rzz_gates[(v * n + j, s * n + j)] = (
-                        rzz_gates.get((v * n + j, s * n + j), 0) + 1 / 4
+                        rzz_gates.get((v * n + j, s * n + j), 0) + 1 / 2
                     )
 
         keys = self.G.terms.keys()
@@ -267,7 +299,7 @@ class GenomeHamiltonian:
         for qubit, value in self.rzz_gates.items():
             qubits.append(qubit)
             ops.append("rzz")
-            coefs.append(value)
+            coefs.append(-1 / 2 * value)
             # localham_rzz[qubit] = rzz_param_gen([value*gamma]).reshape((4,4))
 
         # localham = qu.tensor.LocalHamGen(localham_rzz, H1=localham_rz)

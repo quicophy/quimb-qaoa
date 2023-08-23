@@ -54,7 +54,10 @@ def rand_ini(p):
     """
 
     theta_ini = np.hstack(
-        (np.random.rand(p) * np.pi * 2, np.random.rand(p) * np.pi * 2)
+        (
+            np.random.rand(p) * np.pi - np.pi / 2,
+            np.random.rand(p) * np.pi / 2 - np.pi / 4,
+        )
     )
 
     return theta_ini
@@ -77,12 +80,13 @@ def TQA_ini(
         theta_ini: list of random unitary parameters
     """
 
-    times = np.linspace(0.1, 3, 20)
+    times = np.linspace(0.1, 4, 20)
 
     energies = []
     for t_max in times:
         dt = t_max / p
         t = dt * (np.arange(1, p + 1) - 0.5)
+
         gamma = (t / t_max) * dt
         beta = (1 - t / t_max) * dt
 
