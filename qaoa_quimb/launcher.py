@@ -58,7 +58,7 @@ class QAOALauncher:
         """
 
         start_path = time.time()
-        rehearse_qaoa_circ(
+        width, cost, local_exp_rehs = rehearse_qaoa_circ(
             self.G,
             self.p,
             qaoa_version=self.qaoa_version,
@@ -88,7 +88,7 @@ class QAOALauncher:
 
         self.theta_ini = theta_ini
 
-        return theta_ini
+        return theta_ini, width, cost
 
     def run_qaoa(self, opt=None, mps=False):
         """
