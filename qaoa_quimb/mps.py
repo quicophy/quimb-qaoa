@@ -62,16 +62,18 @@ def create_regular_qaoa_mps(
 
             elif op == "rz":
                 psi0.gate_(
-                    qu.phase_gate(coef * gammas[d]),
+                    rz_gate_param_gen([coef * gammas[d]]),
                     qubit,
                     contract="swap+split",
                     tags="RZ",
                 )
-
+        # print("RZZ", rzz_param_gen([-1/2*0.5]))
+        # print("RZ", rz_gate_param_gen([0.5]))
+        # print("RX", rx_gate_param_gen([0.5]))
         # mixer Hamiltonian
         for i in range(n):
             psi0.gate_(
-                rx_gate_param_gen([-2 * betas[d]]), i, contract="swap+split", tags="RX"
+                rx_gate_param_gen([2 * betas[d]]), i, contract="swap+split", tags="RX"
             )
 
         psi0.normalize()
@@ -113,7 +115,7 @@ def create_gm_qaoa_mps(
 
             elif op == "rz":
                 psi0.gate_(
-                    qu.phase_gate(coef * gammas[d]),
+                    rz_gate_param_gen([coef * gammas[d]]),
                     qubit,
                     contract="swap+split",
                     tags="RZ",
@@ -156,6 +158,70 @@ def create_qgm_qaoa_mps(
 ):
     """
     Creates a parametrized quasi-grover-mixer qaoa mps.
+
+    Returns:
+        circ: quantum circuit
+    """
+
+    hamil = hamiltonian(G, problem)
+    n = hamil.numqubit
+
+    # initial MPS
+    psi0 = MPS_computational_state("0" * n, tags="PSI0")
+
+    coefs, ops, qubits = hamil.gates()
+
+    # layer of hadamards to get into plus state
+    for i in range(n):
+        psi0.gate_(qu.hadamard(), i, contract="swap+split", tags="H")
+
+    for d in range(p):
+        # problem Hamiltonian
+        for coef, op, qubit in zip(coefs, ops, qubits):
+            if op == "rzz":
+                psi0.gate_with_auto_swap_(rzz_param_gen([coef * gammas[d]]), qubit)
+
+            elif op == "rz":
+                psi0.gate_(
+                    rz_gate_param_gen([coef * gammas[d]]),
+                    qubit,
+                    contract="swap+split",
+                    tags="RZ",
+                )
+
+        # mixer Hamiltonian
+        for i in range(n):
+            psi0.gate_(qu.hadamard(), i, contract="swap+split", tags="H")
+
+        for coef, op, qubit in zip(coefs, ops, qubits):
+            if op == "rzz":
+                psi0.gate_with_auto_swap_(rzz_param_gen([-coef * betas[d]]), qubit)
+
+            elif op == "rz":
+                psi0.gate_(
+                    rz_gate_param_gen([-coef * betas[d]]),
+                    qubit,
+                    contract="swap+split",
+                    tags="RZ",
+                )
+
+        for i in range(n):
+            psi0.gate_(qu.hadamard(), i, contract="swap+split", tags="H")
+
+        psi0.normalize()
+
+    return psi0
+
+
+def create_old_qgm_qaoa_mps(
+    G,
+    p,
+    gammas,
+    betas,
+    problem="nae3sat",
+):
+    """
+    THEORY DOESN'T WORK. Creates a parametrized quasi-grover-mixer qaoa mps.
 
     Returns:
         circ: circuit

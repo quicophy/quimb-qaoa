@@ -70,7 +70,7 @@ def create_regular_qaoa_circ(
 
         # mixer Hamiltonian
         for i in range(n):
-            gates.append((d, "rx", -betas[d] * 2, i))
+            gates.append((d, "rx", 2 * betas[d], i))
 
         circ.apply_gates(gates)
 
@@ -150,6 +150,63 @@ def create_qgm_qaoa_circ(
 ):
     """
     Creates a parametrized quasi-grover-mixer qaoa circuit.
+
+    Returns:
+        circ: quantum circuit
+    """
+
+    circuit_opts.setdefault("gate_opts", {})
+    circuit_opts["gate_opts"].setdefault("contract", False)
+
+    hamil = hamiltonian(G, problem)
+    n = hamil.numqubit
+
+    circ = qtn.Circuit(n, **circuit_opts)
+
+    gates = []
+
+    # layer of hadamards to get into plus state
+    for i in range(n):
+        gates.append((0, "h", i))
+
+    circ.apply_gates(gates)
+
+    for d in range(p):
+        gates = []
+
+        # problem Hamiltonian
+        coefs, ops, qubits = hamil.gates()
+
+        for coef, op, qubit in zip(coefs, ops, qubits):
+            # circ.apply_gate_raw(op, qubit, gate_round=d)
+            gates.append((d, op, coef * gammas[d], *qubit))
+
+        # mixer Hamiltonian
+        for i in range(n):
+            gates.append((d, "h", i))
+
+        for coef, op, qubit in zip(coefs, ops, qubits):
+            # circ.apply_gate_raw(op, qubit, gate_round=d)
+            gates.append((d, op, -coef * betas[d], *qubit))
+
+        for i in range(n):
+            gates.append((d, "h", i))
+
+        circ.apply_gates(gates)
+
+    return circ
+
+
+def create_old_qgm_qaoa_circ(
+    G,
+    p,
+    gammas,
+    betas,
+    problem="nae3sat",
+    **circuit_opts,
+):
+    """
+    THEORY DOES NOT WORK. Creates a parametrized quasi-grover-mixer qaoa circuit.
 
     Returns:
         circ: quantum circuit
