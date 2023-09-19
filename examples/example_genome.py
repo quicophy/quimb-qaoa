@@ -15,8 +15,8 @@ from qaoa_quimb.utils import draw_qaoa_circ, rehearse_qaoa_circ
 # GENERAL PARAMETERS
 
 # problem parameters
-numqubit = 3
-p = 2
+numqubit = 4
+p = 3
 ini_method = "tqa"
 qaoa_version = "regular"
 problem = "genome"

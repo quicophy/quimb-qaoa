@@ -21,6 +21,8 @@ def create_qaoa_circ(G, p, gammas, betas, qaoa_version, problem="nae3sat"):
         qc = create_gm_qaoa_circ(G, p, gammas, betas, problem=problem)
     elif qaoa_version == "qgm":
         qc = create_qgm_qaoa_circ(G, p, gammas, betas, problem=problem)
+    elif qaoa_version == "xy":
+        qc = create_xy_mixer_qaoa_circ(G, p, gammas, betas, problem=problem)
     else:
         raise ValueError("The QAOA version is not valid.")
 
@@ -193,6 +195,65 @@ def create_qgm_qaoa_circ(
             gates.append((d, "h", i))
 
         circ.apply_gates(gates)
+
+    return circ
+
+
+def create_xy_mixer_qaoa_circ(
+    G,
+    p,
+    gammas,
+    betas,
+    problem="nae3sat",
+    **circuit_opts,
+):
+    """
+    Creates a parametrized regular qaoa circuit.
+
+    Returns:
+        circ: quantum circuit
+    """
+
+    circuit_opts.setdefault("gate_opts", {})
+    circuit_opts["gate_opts"].setdefault("contract", False)
+
+    hamil = hamiltonian(G, problem)
+    n = hamil.numqubit
+
+    dims = n * [2]
+
+    wstate = qu.gen.states.w_state(n)
+
+    mps = qtn.tensor_1d.MatrixProductState.from_dense(wstate, dims)
+
+    circ = qtn.Circuit(n, psi0=mps, **circuit_opts)
+
+    for d in range(p):
+        gates = []
+        # problem Hamiltonian
+        coefs, ops, qubits = hamil.gates()
+
+        for coef, op, qubit in zip(coefs, ops, qubits):
+            # circ.apply_gate_raw(op, qubit, gate_round=d)
+            gates.append((d, op, coef * gammas[d], *qubit))
+
+        circ.apply_gates(gates)
+        # mixer Hamiltonian
+
+        for b in circ.sample(18):
+            print(b)
+        sn = int(n**1 / 2)
+        for j in range(sn):
+            rxy = np.array(
+                [
+                    [1, 0, 0, 0],
+                    [0, -1j * np.sin(-betas[d]), np.cos(betas[d]), 0],
+                    [0, np.cos(betas[d]), -1j * np.sin(-betas[d]), 0],
+                    [0, 0, 0, 1],
+                ]
+            )
+            v = (j + 1) % n
+            circ.apply_gate_raw(rxy, (j, v), tags="iswap")
 
     return circ
 

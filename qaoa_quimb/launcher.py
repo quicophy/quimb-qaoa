@@ -48,9 +48,15 @@ class QAOALauncher:
         self.optimizer = optimizer
         self.tau = tau
         self.backend = backend
-        self.compute_time = {}
         self.theta_ini = None
         self.theta_opt = None
+        self.compute_time = {
+            "initialization": 0,
+            "contraction path": 0,
+            "energy": 0,
+            "minimisation": 0,
+            "sampling": 0,
+        }
 
     def initialize_qaoa(self, ini_method="tqa", opt=None, mps=False):
         """
@@ -58,6 +64,7 @@ class QAOALauncher:
         """
 
         start_path = time.time()
+        width, cost = 0, 0
         width, cost, local_exp_rehs = rehearse_qaoa_circ(
             self.G,
             self.p,
