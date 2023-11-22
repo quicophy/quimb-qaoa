@@ -163,15 +163,16 @@ def minimize_energy(
     """
 
     eps = 1e-6
-    # bounds = (
-    #     [(-np.pi / 2 + eps, np.pi / 2 - eps)] * p +
-    #     [(-np.pi / 4 + eps, np.pi / 4 - eps)] * p
-    # )
+    bounds = [(-np.pi / 2 + eps, np.pi / 2 - eps)] * p + [
+        (-np.pi / 4 + eps, np.pi / 4 - eps)
+    ] * p
 
     args = (p, G, qaoa_version, problem, mps, max_bond, opt, backend)
 
     if tau is None:
-        res = minimize(compute_energy, x0=theta_ini, method=optimizer, args=args)
+        res = minimize(
+            compute_energy, x0=theta_ini, method=optimizer, bounds=bounds, args=args
+        )
         theta = res.x
 
     else:
@@ -183,6 +184,7 @@ def minimize_energy(
                 x0=theta_ini,
                 method=optimizer,
                 callback=f_wrapper.stop,
+                bounds=bounds,
                 args=args,
             )
             theta = res.x
