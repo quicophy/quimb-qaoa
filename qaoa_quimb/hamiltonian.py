@@ -76,7 +76,7 @@ class IsingHamiltonian:
         for qubit, value in self.rzz_gates.items():
             qubits.append(qubit)
             ops.append("rzz")
-            coefs.append(-1 * value)
+            coefs.append(2 * value)
 
         return coefs, ops, qubits
 
@@ -152,7 +152,7 @@ class IsingWithFieldHamiltonian:
         for qubit, value in self.rzz_gates.items():
             qubits.append(qubit)
             ops.append("rzz")
-            coefs.append(-1 * value)
+            coefs.append(2 * value)
         #     localham_rzz[qubit] = rzz_param_gen([value*gamma]).reshape((4,4))
 
         for qubit, value in self.rz_gates.items():
