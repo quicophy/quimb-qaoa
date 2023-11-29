@@ -76,7 +76,7 @@ class IsingHamiltonian:
         for qubit, value in self.rzz_gates.items():
             qubits.append(qubit)
             ops.append("rzz")
-            coefs.append(2 * value)
+            coefs.append(1 / 2 * value)
 
         return coefs, ops, qubits
 

@@ -127,7 +127,7 @@ def create_gm_qaoa_circ(
         circ.apply_gates(gates)
 
         ncrz_gate = np.eye(2**n, dtype=complex)
-        ncrz_gate[-1, -1] = np.exp(-1j * betas[d])
+        ncrz_gate[-1, -1] = np.exp(-2j * betas[d])
         # ncrz_gate = qu.ncontrolled_gate(n - 1, qu.rotation(-betas[d] * 2), sparse=False)
         circ.apply_gate_raw(ncrz_gate, range(0, n), gate_round=d, tags="NCRZ")
 

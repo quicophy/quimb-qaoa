@@ -22,6 +22,8 @@ def create_qaoa_mps(G, p, gammas, betas, qaoa_version, problem="nae3sat"):
         psi = create_gm_qaoa_mps(G, p, gammas, betas, problem=problem)
     elif qaoa_version == "qgm":
         psi = create_qgm_qaoa_mps(G, p, gammas, betas, problem=problem)
+    elif qaoa_version == "tdvp":
+        psi = create_tdvp_qaoa_mps(G, p, gammas, betas, problem=problem)
     else:
         raise ValueError("The QAOA version is not valid.")
 
@@ -130,7 +132,7 @@ def create_gm_qaoa_mps(
         NCRZ = [CP()]
         for i in range(n - 2):
             NCRZ.append(ADD())
-        NCRZ.append(RZ(betas[d]))
+        NCRZ.append(RZ(2 * betas[d]))
 
         NCRZ = qtn.tensor_1d.MatrixProductOperator(NCRZ, "udrl", tags="NCRZ")
 
@@ -207,6 +209,67 @@ def create_qgm_qaoa_mps(
 
         for i in range(n):
             psi0.gate_(qu.hadamard(), i, contract="swap+split", tags="H")
+
+        psi0.normalize()
+
+    return psi0
+
+
+def create_tdvp_qaoa_mps(
+    G,
+    p,
+    gammas,
+    betas,
+    problem="nae3sat",
+):
+    """
+    Creates a parametrized regular qaoa mps.
+
+    Returns:
+        circ: quantum circuit
+    """
+
+    n = G.numnodes
+
+    # initial MPS
+    psi0 = MPS_computational_state("0" * n, tags="PSI0")
+
+    # N-Controlled RZ gate
+    NCRZ = [CP()]
+    for i in range(n - 2):
+        NCRZ.append(ADD())
+    NCRZ.append(RZ(betas[d]))
+
+    NCRZ = qtn.tensor_1d.MatrixProductOperator(NCRZ, "udrl", tags="NCRZ")
+
+    psi = NCRZ.apply(psi0)
+    del psi0
+
+    # layer of hadamards to get into plus state
+    for i in range(n):
+        psi0.gate_(qu.hadamard(), i, contract="swap+split", tags="H")
+
+    for d in range(p):
+        # problem Hamiltonian
+        for coef, op, qubit in zip(coefs, ops, qubits):
+            if op == "rzz":
+                psi0.gate_with_auto_swap_(rzz_param_gen([coef * gammas[d]]), qubit)
+
+            elif op == "rz":
+                psi0.gate_(
+                    rz_gate_param_gen([coef * gammas[d]]),
+                    qubit,
+                    contract="swap+split",
+                    tags="RZ",
+                )
+        # print("RZZ", rzz_param_gen([-1/2*0.5]))
+        # print("RZ", rz_gate_param_gen([0.5]))
+        # print("RX", rx_gate_param_gen([0.5]))
+        # mixer Hamiltonian
+        for i in range(n):
+            psi0.gate_(
+                rx_gate_param_gen([betas[d]]), i, contract="swap+split", tags="RX"
+            )
 
         psi0.normalize()
 
