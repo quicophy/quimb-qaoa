@@ -1,6 +1,7 @@
 """
-Misc utility functions.
+Miscellaneous utility functions.
 """
+
 
 import quimb as qu
 import numpy as np
@@ -13,54 +14,87 @@ from .hamiltonian import hamiltonian
 from .decomp import *
 
 
-def draw_qaoa_circ(G, p, qaoa_version="regular", problem="nae3sat"):
+def draw_qaoa_circ(graph, depth, qaoa_version):
     """
     Draw the QAOA circuit.
+
+    Parameters
+    ----------
+    graph: ProblemGraph
+        Graph representing the instance of the problem.
+    depth: int
+        Number of layers of gates to apply (depth 'p').
+    qaoa_version: str
+        Type of QAOA circuit to create.
     """
 
-    theta_ini = rand_ini(p)
+    theta_ini = rand_ini(depth)
 
     circ = create_qaoa_circ(
-        G, p, theta_ini[:p], theta_ini[p:], qaoa_version=qaoa_version, problem=problem
+        graph, depth, theta_ini[:depth], theta_ini[depth:], qaoa_version=qaoa_version
     )
 
     circ.psi.draw(color=["PSI0", "H", "X", "RX", "RZ", "RZZ", "NCRZ", "QGM"])
 
-    circ.get_rdm_lightcone_simplified(range(G.numnodes)).draw(
+    circ.get_rdm_lightcone_simplified(range(graph.numnodes)).draw(
         color=["PSI0", "H", "X", "RX", "RZ", "RZZ", "NCRZ", "QGM"], show_tags=False
     )
 
 
 def rehearse_qaoa_circ(
-    G,
-    p,
-    qaoa_version="regular",
-    problem="nae3sat",
-    mps=False,
+    graph,
+    depth,
+    qaoa_version,
     opt=None,
     backend="numpy",
+    mps=False,
     draw=False,
 ):
     """
     Rehearse the contraction of the QAOA circuit and compute the maximal intermediary tensor width and total contraction cost of the best contraction path.
+
+    Parameters
+    ----------
+    graph: ProblemGraph
+        Graph representing the instance of the problem.
+    depth: int
+        Number of layers of gates to apply (depth 'p').
+    qaoa_version: str
+        Type of QAOA circuit to create.
+    opt: str
+        Contraction path optimizer.
+    backend: str
+        Backend to use for the contraction.
+    mps: bool
+        If True, use MPS instead of circuit.
+    draw: bool
+        If True, draw the contraction width and cost.
+
+    Returns
+    -------
+    width: float
+        Maximal intermediary tensor width.
+    cost: float
+        Total contraction cost.
+    local_exp_rehs: list
+        List of rehearsed local expectations.
     """
 
-    theta_ini = rand_ini(p)
+    theta_ini = rand_ini(depth)
 
-    gammas = theta_ini[:p]
-    betas = theta_ini[p:]
+    gammas = theta_ini[:depth]
+    betas = theta_ini[depth:]
 
-    hamil = hamiltonian(G, problem)
+    hamil = hamiltonian(graph)
     ops, qubits = hamil.operators()
 
     if mps:
         psi0 = create_qaoa_mps(
-            G,
-            p,
-            theta_ini[:p],
-            theta_ini[p:],
+            graph,
+            depth,
+            theta_ini[:depth],
+            theta_ini[depth:],
             qaoa_version=qaoa_version,
-            problem=problem,
         )
 
         local_exp_rehs = [
@@ -99,9 +133,7 @@ def rehearse_qaoa_circ(
                 plt.show()
 
     else:
-        circ = create_qaoa_circ(
-            G, p, gammas, betas, qaoa_version=qaoa_version, problem=problem
-        )
+        circ = create_qaoa_circ(graph, depth, gammas, betas, qaoa_version)
 
         local_exp_rehs = [
             circ.local_expectation(
