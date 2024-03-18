@@ -19,6 +19,7 @@ def compute_energy(
     backend="numpy",
     mps=False,
     max_bond=None,
+    **ansatz_opts,
 ):
     """
     Computes the energy value of a QAOA circuit based on user input.
@@ -45,7 +46,6 @@ def compute_energy(
     energy: float
         Energy value of the QAOA circuit.
     """
-
     if max_bond is None:
         energy = compute_exact_energy(
             theta,
@@ -54,6 +54,7 @@ def compute_energy(
             opt=opt,
             backend=backend,
             mps=mps,
+            **ansatz_opts,
         )
     else:
         # energy = _compute_approx_energy(
@@ -77,6 +78,7 @@ def compute_exact_energy(
     opt=None,
     backend="numpy",
     mps=False,
+    **ansatz_opts,
 ):
     """
     Find the expectation value of the problem Hamiltonian with given QAOA angles.
@@ -110,14 +112,16 @@ def compute_exact_energy(
     ops, qubits = hamil.operators()
 
     if mps:
-        psi = create_qaoa_mps(graph, depth, gammas, betas, qaoa_version)
+        psi = create_qaoa_mps(graph, depth, gammas, betas, qaoa_version, **ansatz_opts)
         ens = [
             psi.local_expectation_exact(op, qubit, optimize=opt, backend=backend)
             for (op, qubit) in zip(ops, qubits)
         ]
 
     else:
-        circ = create_qaoa_circ(graph, depth, gammas, betas, qaoa_version)
+        circ = create_qaoa_circ(
+            graph, depth, gammas, betas, qaoa_version, **ansatz_opts
+        )
         ens = [
             circ.local_expectation(op, qubit, optimize=opt, backend=backend)
             for (op, qubit) in zip(ops, qubits)
@@ -167,25 +171,22 @@ def _compute_approx_energy(
     hamil = hamiltonian(graph)
     ops, qubits = hamil.operators()
 
+    ansatz = instantiate_qaoa(graph, depth, gammas, betas, qaoa_version)
     if mps:
-        psi = create_qaoa_mps(graph, depth, gammas, betas, qaoa_version)
-
         ens = []
 
         for op, qubit in zip(ops, qubits):
-            contracted_value = psi.local_expectation(
+            contracted_value = ansatz.local_expectation(
                 op, qubit, max_bond, optimize=opt, backend=backend
             )
 
             ens.append(contracted_value)
 
     else:
-        circ = create_qaoa_circ(graph, depth, gammas, betas, qaoa_version)
-
         ens = []
 
         for op, qubit in zip(ops, qubits):
-            tn = circ.local_expectation_tn(op, qubit, simplify_sequence="")
+            tn = ansatz.local_expectation_tn(op, qubit, simplify_sequence="")
             tn.compress_simplify(inplace=True)
             tn.hyperinds_resolve(inplace=True)
 
@@ -206,6 +207,7 @@ def minimize_energy(
     max_bond=None,
     mps=False,
     tau=None,
+    **ansatz_opts,
 ):
     """
     Minimize the expectation value of the problem Hamiltonian. The actual computation is not rehearsed - the contraction widths and costs of each energy term are not pre-computed.
@@ -237,6 +239,27 @@ def minimize_energy(
         Optimal QAOA angles.
     """
 
+    def wrapper_compute_energy(
+        theta,
+        graph,
+        qaoa_version,
+        opt=None,
+        backend="numpy",
+        mps=False,
+        max_bond=None,
+        kwargs=None,
+    ):
+        return compute_energy(
+            theta,
+            graph,
+            qaoa_version,
+            opt=opt,
+            backend=backend,
+            mps=mps,
+            max_bond=max_bond,
+            **kwargs,
+        )
+
     depth = len(theta_ini) // 2
 
     # bound QAOA angles to their respective ranges
@@ -246,16 +269,20 @@ def minimize_energy(
     ] * depth
 
     # arguments to pass to the SciPy optimizer
-    args = (graph, qaoa_version, opt, backend, mps, max_bond)
+    args = (graph, qaoa_version, opt, backend, mps, max_bond, ansatz_opts)
 
     if tau is None:
         res = minimize(
-            compute_energy, x0=theta_ini, method=optimizer, bounds=bounds, args=args
+            wrapper_compute_energy,
+            x0=theta_ini,
+            method=optimizer,
+            bounds=bounds,
+            args=args,
         )
         theta = res.x
 
     else:
-        f_wrapper = Objective_Function_Wrapper(compute_energy, tau)
+        f_wrapper = Objective_Function_Wrapper(wrapper_compute_energy, tau)
 
         try:
             res = minimize(
@@ -269,7 +296,7 @@ def minimize_energy(
             theta = res.x
         except Trigger:
             theta = f_wrapper.best_x
-
+    # print(res)
     return theta
 
 

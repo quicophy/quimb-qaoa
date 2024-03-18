@@ -12,7 +12,7 @@ from quimb.tensor.tensor_builder import MPS_computational_state
 from .hamiltonian import hamiltonian
 
 
-def create_qaoa_mps(graph, depth, gammas, betas, qaoa_version):
+def create_qaoa_mps(graph, depth, gammas, betas, qaoa_version, assumptions=[]):
     """
     Creates an appropriate QAOA MPS based on user input.
 
@@ -39,6 +39,14 @@ def create_qaoa_mps(graph, depth, gammas, betas, qaoa_version):
         psi = create_reg_qaoa_mps(graph, depth, gammas, betas)
     elif qaoa_version == "grover-mixer":
         psi = create_gm_qaoa_mps(graph, depth, gammas, betas)
+    elif qaoa_version == "vqcount-regular":
+        psi = create_vqcount_reg_qaoa_mps(
+            graph, depth, gammas, betas, assumptions=assumptions
+        )
+    elif qaoa_version == "vqcount-grover-mixer":
+        psi = create_vqcount_gm_qaoa_mps(
+            graph, depth, gammas, betas, assumptions=assumptions
+        )
     # elif qaoa_version == "tdvp":
     #     psi = _create_tdvp_qaoa_mps(graph, depth, gammas, betas)
     else:
@@ -101,74 +109,6 @@ def create_reg_qaoa_mps(
 
         # mixer Hamiltonian
         for i in range(n):
-            psi0.gate_(
-                rx_gate_param_gen([2 * betas[p]]), i, contract="swap+split", tags="RX"
-            )
-
-        psi0.normalize()
-
-    return psi0
-
-
-def create_mod_reg_qaoa_mps(
-    graph,
-    depth,
-    gammas,
-    betas,
-    assumptions,
-):
-    """
-    Creates the original QAOA MPS, i.e. with the X-mixer.
-
-    Parameters
-    ----------
-    graph: ProblemGraph
-        Graph representing the instance of the problem.
-    depth: int
-        Number of layers of gates to apply (depth 'p').
-    gammas: iterable of floats
-        Interaction angles (problem Hamiltonian) for each layer.
-    betas: iterable of floats
-        Rotation angles (mixer Hamiltonian) for each layer.
-
-    Returns
-    -------
-    psi: MatrixProductState
-        The QAOA MPS.
-    """
-
-    hamil = hamiltonian(graph)
-    n = hamil.numqubit  # may differ from number of nodes
-
-    # initial MPS
-    psi0 = MPS_computational_state("0" * n, tags="PSI0")
-
-    coefs, ops, qubits = hamil.gates()
-
-    for i, var in enumerate(assumptions):
-        if var == str(1):
-            psi0.gate_(qu.pauli("X"), i, contract="swap+split", tags="X")
-
-    # layer of hadamards to get into plus state
-    for i in range(len(assumptions), n):
-        psi0.gate_(qu.hadamard(), i, contract="swap+split", tags="H")
-
-    for p in range(depth):
-        # problem Hamiltonian
-        for coef, op, qubit in zip(coefs, ops, qubits):
-            if op == "rzz":
-                psi0.gate_with_auto_swap_(rzz_param_gen([coef * gammas[p]]), qubit)
-
-            elif op == "rz":
-                psi0.gate_(
-                    rz_gate_param_gen([coef * gammas[p]]),
-                    qubit,
-                    contract="swap+split",
-                    tags="RZ",
-                )
-
-        # mixer Hamiltonian
-        for i in range(len(assumptions), n):
             psi0.gate_(
                 rx_gate_param_gen([2 * betas[p]]), i, contract="swap+split", tags="RX"
             )
@@ -247,6 +187,165 @@ def create_gm_qaoa_mps(
         del psi0
 
         for i in range(n):
+            psi.gate_(qu.pauli("X"), i, contract="swap+split", tags="X")
+            psi.gate_(qu.hadamard(), i, contract="swap+split", tags="H")
+
+        psi.normalize()
+
+        psi0 = psi
+        del psi
+
+    return psi0
+
+
+def create_vqcount_reg_qaoa_mps(
+    graph,
+    depth,
+    gammas,
+    betas,
+    assumptions,
+):
+    """
+    Creates the VQCount original QAOA MPS, i.e. with the X-mixer.
+
+    Parameters
+    ----------
+    graph: ProblemGraph
+        Graph representing the instance of the problem.
+    depth: int
+        Number of layers of gates to apply (depth 'p').
+    gammas: iterable of floats
+        Interaction angles (problem Hamiltonian) for each layer.
+    betas: iterable of floats
+        Rotation angles (mixer Hamiltonian) for each layer.
+    assumptions: iterable of str
+        The qubit to fixed in the QAOA circuit for the VQCount algorithm.
+
+    Returns
+    -------
+    psi: MatrixProductState
+        The QAOA MPS.
+    """
+
+    hamil = hamiltonian(graph)
+    n = hamil.numqubit  # may differ from number of nodes
+
+    # initial MPS
+    psi0 = MPS_computational_state("0" * n, tags="PSI0")
+
+    coefs, ops, qubits = hamil.gates()
+
+    for i, var in enumerate(assumptions):
+        if var == str(1):
+            psi0.gate_(qu.pauli("X"), i, contract="swap+split", tags="X")
+
+    # layer of hadamards to get into plus state
+    for i in range(len(assumptions), n):
+        psi0.gate_(qu.hadamard(), i, contract="swap+split", tags="H")
+
+    for p in range(depth):
+        # problem Hamiltonian
+        for coef, op, qubit in zip(coefs, ops, qubits):
+            if op == "rzz":
+                psi0.gate_with_auto_swap_(rzz_param_gen([coef * gammas[p]]), qubit)
+
+            elif op == "rz":
+                psi0.gate_(
+                    rz_gate_param_gen([coef * gammas[p]]),
+                    qubit,
+                    contract="swap+split",
+                    tags="RZ",
+                )
+
+        # mixer Hamiltonian
+        for i in range(len(assumptions), n):
+            psi0.gate_(
+                rx_gate_param_gen([2 * betas[p]]), i, contract="swap+split", tags="RX"
+            )
+
+        psi0.normalize()
+
+    return psi0
+
+
+def create_vqcount_gm_qaoa_mps(
+    graph,
+    depth,
+    gammas,
+    betas,
+    assumptions,
+):
+    """
+    Creates the VQCount Grover-Mixer QAOA (GM-QAOA) MPS.
+
+    Parameters
+    ----------
+    graph: ProblemGraph
+        Graph representing the instance of the problem.
+    depth: int
+        Number of layers of gates to apply (depth 'p').
+    gammas: iterable of floats
+        Interaction angles (problem Hamiltonian) for each layer.
+    betas: iterable of floats
+        Rotation angles (mixer Hamiltonian) for each layer.
+    assumptions: iterable of str
+        The qubit to fixed in the QAOA circuit for the VQCount algorithm.
+
+    Returns
+    -------
+    psi: MatrixProductState
+        The QAOA MPS.
+    """
+
+    hamil = hamiltonian(graph)
+    n = hamil.numqubit  # may differ from number of nodes
+
+    # initial MPS
+    psi0 = MPS_computational_state("0" * n, tags="PSI0")
+
+    for i, var in enumerate(assumptions):
+        if var == str(1):
+            psi0.gate_(qu.pauli("X"), i, contract="swap+split", tags="X")
+
+    # layer of hadamards to get into plus state
+    for i in range(len(assumptions), n):
+        psi0.gate_(qu.hadamard(), i, contract="swap+split", tags="H")
+
+    for p in range(depth):
+        # problem Hamiltonian
+        coefs, ops, qubits = hamil.gates()
+
+        for coef, op, qubit in zip(coefs, ops, qubits):
+            if op == "rzz":
+                psi0.gate_with_auto_swap_(rzz_param_gen([coef * gammas[p]]), qubit)
+
+            elif op == "rz":
+                psi0.gate_(
+                    rz_gate_param_gen([coef * gammas[p]]),
+                    qubit,
+                    contract="swap+split",
+                    tags="RZ",
+                )
+
+        # mixer Hamiltonian
+        for i in range(len(assumptions), n):
+            psi0.gate_(qu.hadamard(), i, contract="swap+split", tags="H")
+            psi0.gate_(qu.pauli("X"), i, contract="swap+split", tags="X")
+
+        # multi-control phase-shift gate
+        ncrz_gate = [CP()]
+        for i in range(len(assumptions)):
+            ncrz_gate.append(CP())
+        for i in range(n - 2 - len(assumptions)):
+            ncrz_gate.append(ADD())
+        ncrz_gate.append(RZ(2 * betas[p]))
+
+        ncrz_gate = qtn.tensor_1d.MatrixProductOperator(ncrz_gate, "udrl", tags="NCRZ")
+
+        psi = ncrz_gate.apply(psi0)
+        del psi0
+
+        for i in range(len(assumptions), n):
             psi.gate_(qu.pauli("X"), i, contract="swap+split", tags="X")
             psi.gate_(qu.hadamard(), i, contract="swap+split", tags="H")
 

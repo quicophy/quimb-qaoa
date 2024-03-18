@@ -49,6 +49,7 @@ def rehearse_qaoa_circ(
     backend="numpy",
     mps=False,
     draw=False,
+    **ansatz_kwargs,
 ):
     """
     Rehearse the contraction of the QAOA circuit and compute the maximal intermediary tensor width and total contraction cost of the best contraction path.
@@ -95,6 +96,7 @@ def rehearse_qaoa_circ(
             theta_ini[:depth],
             theta_ini[depth:],
             qaoa_version=qaoa_version,
+            **ansatz_kwargs,
         )
 
         local_exp_rehs = [
@@ -133,7 +135,9 @@ def rehearse_qaoa_circ(
                 plt.show()
 
     else:
-        circ = create_qaoa_circ(graph, depth, gammas, betas, qaoa_version)
+        circ = create_qaoa_circ(
+            graph, depth, gammas, betas, qaoa_version, **ansatz_kwargs
+        )
 
         local_exp_rehs = [
             circ.local_expectation(

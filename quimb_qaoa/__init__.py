@@ -25,6 +25,10 @@ from .initialization import (
     ini,
 )
 
+from .instantiation import (
+    instantiate_ansatz,
+)
+
 from .launcher import (
     QAOALauncher,
 )

@@ -199,7 +199,7 @@ class Mono1in3satGraph:
         edges = sorted(edges)
 
         # name of the problem
-        self.problem = "mono1in3sat"
+        self.problem = "1in3sat"
         # 3SAT formula
         self.cf_ini = cf + 1
         # 1in3SAT formula

@@ -17,6 +17,7 @@ def ini(
     backend="numpy",
     mps=False,
     max_bond=None,
+    **ansatz_opts,
 ):
     """
     Creates appropriate initial parameters based on user input.
@@ -57,6 +58,7 @@ def ini(
             max_bond=max_bond,
             opt=opt,
             backend=backend,
+            **ansatz_opts,
         )
     else:
         raise ValueError("The initialization method given is not valid.")
@@ -97,6 +99,7 @@ def TQA_ini(
     backend="numpy",
     mps=False,
     max_bond=None,
+    **ansatz_opts,
 ):
     """
     Creates a list of initial unitary parameters for the QAOA algorithm. The parameters are initialized based on the Trotterized Quantum Annealing (TQA) strategy for initialization. See "Quantum Annealing Initialization of the Quantum Approximate Optimization Algorithm".
@@ -148,6 +151,7 @@ def TQA_ini(
                 backend=backend,
                 max_bond=max_bond,
                 mps=mps,
+                **ansatz_opts,
             )
         )
 
