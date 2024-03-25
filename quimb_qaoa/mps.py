@@ -2,11 +2,10 @@
 Implementation of different types of Matrix Product States (MPS) for QAOA with the MPS/MPO method.
 """
 
-
 import numpy as np
 import quimb as qu
 import quimb.tensor as qtn
-from quimb.tensor.circuit import rzz_param_gen, rx_gate_param_gen, rz_gate_param_gen
+from quimb.tensor.circuit import rx_gate_param_gen, rz_gate_param_gen, rzz_param_gen
 from quimb.tensor.tensor_builder import MPS_computational_state
 
 from .hamiltonian import hamiltonian
@@ -176,7 +175,7 @@ def create_gm_qaoa_mps(
             psi0.gate_(qu.pauli("X"), i, contract="swap+split", tags="X")
 
         # multi-control phase-shift gate
-        ncrz_gate = [CP()]
+        ncrz_gate = [CP_TOP()]
         for i in range(n - 2):
             ncrz_gate.append(ADD())
         ncrz_gate.append(RZ(2 * betas[p]))
@@ -332,12 +331,24 @@ def create_vqcount_gm_qaoa_mps(
             psi0.gate_(qu.hadamard(), i, contract="swap+split", tags="H")
             psi0.gate_(qu.pauli("X"), i, contract="swap+split", tags="X")
 
+        ncrz_gate = []
+
         # multi-control phase-shift gate
-        ncrz_gate = [CP()]
-        for i in range(len(assumptions)):
-            ncrz_gate.append(CP())
-        for i in range(n - 2 - len(assumptions)):
+        if len(assumptions) != 0:
+            ncrz_gate.append(ID_TOP())
+
+            for i in range(len(assumptions) - 1):
+                ncrz_gate.append(ID_MID())
+
+            if n - len(assumptions) > 1:
+                ncrz_gate.append(CP_MID())
+
+        else:
+            ncrz_gate.append(CP_TOP())
+
+        for i in range(n - len(assumptions) - 2):
             ncrz_gate.append(ADD())
+
         ncrz_gate.append(RZ(2 * betas[p]))
 
         ncrz_gate = qtn.tensor_1d.MatrixProductOperator(ncrz_gate, "udrl", tags="NCRZ")
@@ -546,14 +557,6 @@ def RZ(beta):
     return RZ
 
 
-def CP():
-    """COPY gate"""
-    CP = np.zeros((2, 2, 2, 1), dtype="complex")
-    CP[0, 0, 0, 0] = 1
-    CP[1, 1, 1, 0] = 1
-    return CP
-
-
 def ADD():
     """ADD gate"""
     ADD = np.zeros((2, 2, 2, 2), dtype="complex")
@@ -566,3 +569,33 @@ def ADD():
     ADD[1, 1, 0, 1] = 0
     ADD[1, 1, 1, 1] = 1
     return ADD
+
+
+def CP_TOP():
+    """COPY gate"""
+    CP = np.zeros((2, 2, 2, 1), dtype="complex")
+    CP[0, 0, 0, 0] = 1
+    CP[1, 1, 1, 0] = 1
+    return CP
+
+
+def CP_MID():
+    """COPY gate"""
+    CP = np.zeros((2, 2, 2, 2), dtype="complex")
+    CP[0, 0, 0, 0] = 1
+    CP[1, 1, 1, 0] = 1
+    return CP
+
+
+def ID_TOP():
+    ID = np.zeros((2, 2, 2, 1), dtype="complex")
+    ID[0, 0, 0, 0] = 1
+    ID[1, 1, 0, 0] = 1
+    return ID
+
+
+def ID_MID():
+    ID = np.zeros((2, 2, 2, 2), dtype="complex")
+    ID[0, 0, 0, 0] = 1
+    ID[1, 1, 0, 0] = 1
+    return ID

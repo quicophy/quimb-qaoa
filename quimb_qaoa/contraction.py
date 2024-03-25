@@ -2,13 +2,13 @@
 Functions for the contraction of QAOA.
 """
 
-
 import numpy as np
 from scipy.optimize import minimize
 
 from .circuit import create_qaoa_circ
-from .mps import create_qaoa_mps
 from .hamiltonian import hamiltonian
+from .instantiation import instantiate_ansatz
+from .mps import create_qaoa_mps
 
 
 def compute_energy(
@@ -171,7 +171,7 @@ def _compute_approx_energy(
     hamil = hamiltonian(graph)
     ops, qubits = hamil.operators()
 
-    ansatz = instantiate_qaoa(graph, depth, gammas, betas, qaoa_version)
+    ansatz = instantiate_ansatz(graph, depth, gammas, betas, qaoa_version)
     if mps:
         ens = []
 

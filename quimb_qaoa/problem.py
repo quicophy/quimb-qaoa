@@ -3,10 +3,10 @@ Implementation of differents problems to be solved using QAOA.
 """
 
 
+import igraph as ig
+import networkx as nx
 import numpy as np
 import qecstruct as qs
-import networkx as nx
-import igraph as ig
 
 
 class Nae3satGraph:
@@ -316,6 +316,7 @@ class Mono2satGraph:
         self.numnodes = numvar
         # dictionary of edges of the ising graph
         self.terms = terms
+        self.problem = "2sat"
 
     def cnf_view(self):
         """CNF formula view."""

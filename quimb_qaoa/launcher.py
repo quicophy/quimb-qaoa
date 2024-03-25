@@ -2,18 +2,17 @@
 Launcher for QAOA. Main class for the simulation of QAOA circuits.
 """
 
+import time
+from collections import Counter
 
 import quimb.tensor as qtn
-from collections import Counter
-import time
 
-from .initialization import ini
 from .circuit import create_qaoa_circ
-from .mps import create_qaoa_mps
 from .contraction import compute_energy, minimize_energy
-from .utils import rehearse_qaoa_circ
 from .decomp import *
-from .circuit import *
+from .initialization import ini
+from .mps import create_qaoa_mps
+from .utils import rehearse_qaoa_circ
 
 
 class QAOALauncher:
@@ -186,7 +185,7 @@ class QAOALauncher:
 
         return theta_ini, width, cost
 
-    def optimize_qaoa(self, opt=None, mps=False, **ansatz_opts):
+    def optimize_qaoa(self, opt=None, mps=False, energy=True, **ansatz_opts):
         """
         Optimize the qaoa.
 
@@ -224,19 +223,24 @@ class QAOALauncher:
         )
         end_minim = time.time()
 
-        # compute the final energy (useful for contraction time)
-        start_energy = time.time()
-        energy = compute_energy(
-            theta_opt,
-            self.graph,
-            qaoa_version=self.qaoa_version,
-            opt=opt,
-            backend=self.backend,
-            mps=mps,
-            max_bond=self.max_bond,
-            **ansatz_opts,
-        )
-        end_energy = time.time()
+        if energy:
+            # compute the final energy (useful for contraction time)
+            start_energy = time.time()
+            energy = compute_energy(
+                theta_opt,
+                self.graph,
+                qaoa_version=self.qaoa_version,
+                opt=opt,
+                backend=self.backend,
+                mps=mps,
+                max_bond=self.max_bond,
+                **ansatz_opts,
+            )
+            end_energy = time.time()
+        else:
+            start_energy = None
+            end_energy = None
+            energy = None
 
         self.compute_time["minimisation"] = end_minim - start_minim
         self.compute_time["energy"] = end_energy - start_energy
@@ -280,6 +284,7 @@ class QAOALauncher:
 
         # sample the QAOA circuit
         start_sampling = time.time()
+        # TO CHANGE
         # counts = Counter(ansatz.sample(shots, optimize=opt, backend=self.backend, max_marginal_storage=2**28))
         counts = Counter(
             ansatz.simulate_counts(shots, optimize=opt, backend=self.backend)
