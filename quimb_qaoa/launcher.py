@@ -2,18 +2,15 @@
 Launcher for QAOA. Main class for the simulation of QAOA circuits.
 """
 
-
-import quimb.tensor as qtn
-from collections import Counter
 import time
 
-from .initialization import ini
+import quimb.tensor as qtn
+
 from .circuit import create_qaoa_circ
-from .mps import create_qaoa_mps
 from .contraction import compute_energy, minimize_energy
+from .initialization import initialize_qaoa_parameters
+from .mps import create_qaoa_mps
 from .utils import rehearse_qaoa_circ
-from .decomp import *
-from .circuit import *
 
 
 class QAOALauncher:
@@ -48,6 +45,8 @@ class QAOALauncher:
         Initial parameters of the QAOA circuit.
     theta_opt: np.ndarray
         Optimal parameters of the QAOA circuit.
+    ansatz: qtn.Circuit
+        QAOA ansatz instantiated (either in the circuit or MPS format).
     compute_time: dict
         Dictionary of the computation time of the different steps of the QAOA circuit.
     """
@@ -57,7 +56,6 @@ class QAOALauncher:
         graph,
         depth,
         qaoa_version,
-        problem,
         optimizer="SLSQP",
         backend="numpy",
         max_bond=None,
@@ -66,7 +64,6 @@ class QAOALauncher:
         self.graph = graph
         self.depth = depth
         self.qaoa_version = qaoa_version
-        self.problem = problem
         self.optimizer = optimizer
         self.backend = backend
         self.max_bond = max_bond
@@ -84,7 +81,47 @@ class QAOALauncher:
             "sampling": 0,
         }
 
-    def initialize_qaoa(self, ini_method, opt=None, mps=False):
+    def instantiate_qaoa(self, theta, mps=False, **ansatz_opts):
+        """
+        Instantiate the QAOA ansatz (circuit or MPS).
+
+        Parameters:
+        -----------
+        theta: np.ndarray
+            Parameters of the QAOA circuit to instantiate.
+        mps: bool, optional
+            If True, initialize the QAOA circuit as a Matrix Product State (MPS) instead of as a general tensor networks.
+
+        Returns:
+        --------
+        circ: qtn.Circuit
+            QAOA circuit instantiated.
+        """
+
+        # create the QAOA circuit or MPS
+        if mps:
+            psi0 = create_qaoa_mps(
+                self.graph,
+                self.depth,
+                theta[: self.depth],
+                theta[self.depth :],
+                qaoa_version=self.qaoa_version,
+                **ansatz_opts,
+            )
+            circ = qtn.Circuit(psi0=psi0)
+        else:
+            circ = create_qaoa_circ(
+                self.graph,
+                self.depth,
+                theta[: self.depth],
+                theta[self.depth :],
+                qaoa_version=self.qaoa_version,
+                **ansatz_opts,
+            )
+
+        return circ
+
+    def initialize_qaoa(self, ini_method, opt=None, mps=False, **ansatz_opts):
         """
         Initialize QAOA.
 
@@ -119,12 +156,13 @@ class QAOALauncher:
             opt=opt,
             backend=self.backend,
             mps=mps,
+            **ansatz_opts,
         )
         end_path = time.time()
 
         # initialize the QAOA circuit
         start_ini = time.time()
-        theta_ini = ini(
+        theta_ini = initialize_qaoa_parameters(
             self.graph,
             self.depth,
             ini_method,
@@ -133,6 +171,7 @@ class QAOALauncher:
             backend=self.backend,
             mps=mps,
             max_bond=self.max_bond,
+            **ansatz_opts,
         )
         end_ini = time.time()
 
@@ -144,9 +183,9 @@ class QAOALauncher:
 
         return theta_ini, width, cost
 
-    def run_qaoa(self, opt=None, mps=False):
+    def optimize_qaoa(self, opt=None, mps=False, energy=True, **ansatz_opts):
         """
-        Run the qaoa.
+        Optimize the qaoa.
 
         Parameters:
         -----------
@@ -178,21 +217,28 @@ class QAOALauncher:
             max_bond=self.max_bond,
             mps=mps,
             tau=self.tau,
+            **ansatz_opts,
         )
         end_minim = time.time()
 
-        # compute the final energy (useful for contraction time)
-        start_energy = time.time()
-        energy = compute_energy(
-            theta_opt,
-            self.graph,
-            qaoa_version=self.qaoa_version,
-            opt=opt,
-            backend=self.backend,
-            mps=mps,
-            max_bond=self.max_bond,
-        )
-        end_energy = time.time()
+        if energy:
+            # compute the final energy (useful for contraction time)
+            start_energy = time.time()
+            energy = compute_energy(
+                theta_opt,
+                self.graph,
+                qaoa_version=self.qaoa_version,
+                opt=opt,
+                backend=self.backend,
+                mps=mps,
+                max_bond=self.max_bond,
+                **ansatz_opts,
+            )
+            end_energy = time.time()
+        else:
+            start_energy = None
+            end_energy = None
+            energy = None
 
         self.compute_time["minimisation"] = end_minim - start_minim
         self.compute_time["energy"] = end_energy - start_energy
@@ -203,7 +249,7 @@ class QAOALauncher:
 
         return energy, theta_opt
 
-    def sample_qaoa(self, shots, opt=None, mps=True):
+    def sample_qaoa(self, shots, ansatz=None, opt=None, mps=True, **ansatz_opts):
         """
         Sample the qaoa.
 
@@ -211,6 +257,8 @@ class QAOALauncher:
         -----------
         shots: int
             Number of samples to take.
+        ansatz: qtn.Circuit, optional
+            QAOA ansatz to sample. Used to keep the marginals found. If None, the QAOA ansatz is instantiated from the optimal parameters.
         opt: str, optional
             Contraction path optimizer. Default is Quimb's default optimizer.
         mps: bool, optional
@@ -222,37 +270,24 @@ class QAOALauncher:
             Counter of the samples.
         """
 
-        if self.theta_opt is not None:
-            theta = self.theta_opt
-        elif self.theta_ini is not None:
-            theta = self.theta_ini
-        else:
-            raise ValueError(
-                "Please initialize or initialize and run QAOA before sampling."
-            )
-
-        # create the QAOA circuit or MPS
-        if mps:
-            psi0 = create_qaoa_mps(
-                self.graph,
-                self.depth,
-                theta[: self.depth],
-                theta[self.depth :],
-                qaoa_version=self.qaoa_version,
-            )
-            circ = qtn.Circuit(psi0=psi0)
-        else:
-            circ = create_qaoa_circ(
-                self.graph,
-                self.depth,
-                theta[: self.depth],
-                theta[self.depth :],
-                qaoa_version=self.qaoa_version,
-            )
+        if ansatz is None:
+            if self.theta_opt is not None:
+                ansatz = self.instantiate_qaoa(self.theta_opt, mps, **ansatz_opts)
+            elif self.theta_ini is not None:
+                ansatz = self.instantiate_qaoa(self.theta_ini, mps, **ansatz_opts)
+            else:
+                raise ValueError(
+                    "Please initialize or initialize and run QAOA before sampling."
+                )
 
         # sample the QAOA circuit
         start_sampling = time.time()
-        counts = Counter(circ.sample(shots, optimize=opt, backend=self.backend))
+        counts = ansatz.sample(
+            shots, optimize=opt, backend=self.backend, max_marginal_storage=2**28
+        )
+        # counts = Counter(
+        #     ansatz.simulate_counts(shots, optimize=opt, backend=self.backend)
+        # )
         end_sampling = time.time()
 
         self.compute_time["sampling"] = end_sampling - start_sampling

@@ -2,21 +2,20 @@
 Example for solving the MAXCUT problem with QAOA.
 """
 
+import time
 
-import networkx as nx
 import cotengra as ctg
 import matplotlib.pyplot as plt
-import time
+import networkx as nx
 
 from quimb_qaoa.launcher import QAOALauncher
 from quimb_qaoa.utils import draw_qaoa_circ, rehearse_qaoa_circ
-
 
 # PARAMETERS
 
 # problem parameters
 numqubit = 6
-p = 3
+depth = 3
 ini_method = "random"
 qaoa_version = "grover-mixer"
 problem = "maxcut"
@@ -96,26 +95,24 @@ if max_bond is not None:
 
 # REHEARSAL AND PREPARATION
 
-G = nx.erdos_renyi_graph(numqubit, 0.5, seed=seed)
-G.numnodes = G.order()
-G.terms = {(i, j): 1 for i, j in G.edges}
-G.problem = "maxcut"
+graph = nx.erdos_renyi_graph(numqubit, 0.5, seed=seed)
+graph.numnodes = graph.order()
+graph.terms = {(i, j): 1 for i, j in graph.edges}
+graph.problem = "maxcut"
 
-nx.draw(G)
+nx.draw(graph)
 plt.show()
 
 draw_qaoa_circ(
-    G,
-    p,
+    graph,
+    depth,
     qaoa_version=qaoa_version,
-    problem=problem,
 )
 
 width, cost, local_exp_rehs = rehearse_qaoa_circ(
-    G,
-    p,
+    graph,
+    depth,
     qaoa_version=qaoa_version,
-    problem=problem,
     mps=contract_mps,
     opt=contract_opt,
     backend=backend,
@@ -128,29 +125,27 @@ print("Cost :", cost)
 
 # MAIN
 
-for i in range(shots):
-    start = time.time()
-    QAOA = QAOALauncher(
-        G,
-        p,
-        qaoa_version=qaoa_version,
-        problem=problem,
-        max_bond=max_bond,
-        optimizer=optimizer,
-        tau=tau,
-        backend=backend,
-    )
-    theta_ini = QAOA.initialize_qaoa(
-        ini_method=ini_method, opt=contract_opt, mps=contract_mps
-    )
-    print("Initialization is done!")
-    energy, theta = QAOA.run_qaoa(opt=contract_opt, mps=contract_mps)
-    print("Optimization is done!")
-    counts = QAOA.sample_qaoa(shots, opt=sampling_opt, mps=sampling_mps)
-    compute_time = QAOA.compute_time
-    print("Sampling is done!")
-    end = time.time()
+start = time.time()
+QAOA = QAOALauncher(
+    graph,
+    depth,
+    qaoa_version=qaoa_version,
+    max_bond=max_bond,
+    optimizer=optimizer,
+    tau=tau,
+    backend=backend,
+)
+theta_ini = QAOA.initialize_qaoa(
+    ini_method=ini_method, opt=contract_opt, mps=contract_mps
+)
+print("Initialization is done!")
+energy, theta = QAOA.optimize_qaoa(opt=contract_opt, mps=contract_mps)
+print("Optimization is done!")
+counts = QAOA.sample_qaoa(shots, opt=sampling_opt, mps=sampling_mps)
+compute_time = QAOA.compute_time
+print("Sampling is done!")
+end = time.time()
 
-    print("Energy :", energy)
-    print("Time :", end - start)
-    print("Total computation time :", compute_time)
+print("Energy :", energy)
+print("Time :", end - start)
+print("Total computation time :", compute_time)
