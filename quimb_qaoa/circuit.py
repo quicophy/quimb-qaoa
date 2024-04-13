@@ -2,7 +2,6 @@
 Implementation of different types of circuits for QAOA with general tensor networks.
 """
 
-
 import numpy as np
 import quimb as qu
 import quimb.tensor as qtn
@@ -28,6 +27,8 @@ def create_qaoa_circ(
         Rotation angles (mixer Hamiltonian) for each layer.
     qaoa_version: str
         The type of QAOA circuit to create.
+    assumptions: iterable of str
+        The qubit to fixed in the QAOA circuit for the VQCount algorithm.
     circuit_opts: dict
         Supplied to :class:`~quimb.tensor.circuit.Circuit`.
 
@@ -425,157 +426,5 @@ def _create_xy_qaoa_circ(
             )
             v = (j + 1) % n
             circ.apply_gate_raw(rxy, (j, v), tags="iswap")
-
-    return circ
-
-
-def _create_qgm1_qaoa_circ(
-    graph,
-    depth,
-    gammas,
-    betas,
-    **circuit_opts,
-):
-    """
-    UNTESTED. Creates the Quasi-Grover-Mixer QAOA circuit.
-
-    Parameters
-    ----------
-    graph: ProblemGraph
-        Graph representing the instance of the problem.
-    depth: int
-        Number of layers of gates to apply (depth 'p').
-    gammas: iterable of floats
-        Interaction angles (problem Hamiltonian) for each layer.
-    betas: iterable of floats
-        Rotation angles (mixer Hamiltonian) for each layer.
-    circuit_opts: dict
-        Supplied to :class:`~quimb.tensor.circuit.Circuit`.
-
-    Returns
-    -------
-    circ: Circuit
-        The QAOA circuit.
-    """
-
-    circuit_opts.setdefault("gate_opts", {})
-    circuit_opts["gate_opts"].setdefault("contract", False)
-
-    hamil = hamiltonian(graph)
-    n = hamil.numqubit
-
-    circ = qtn.Circuit(n, **circuit_opts)
-
-    gates = []
-
-    # layer of hadamards to get into plus state
-    for i in range(n):
-        gates.append((0, "h", i))
-
-    circ.apply_gates(gates)
-
-    for p in range(depth):
-        gates = []
-
-        # problem Hamiltonian
-        coefs, ops, qubits = hamil.gates()
-
-        for coef, op, qubit in zip(coefs, ops, qubits):
-            # circ.apply_gate_raw(op, qubit, gate_round=d)
-            gates.append((p, op, coef * gammas[p], *qubit))
-
-        # mixer Hamiltonian
-        for i in range(n):
-            gates.append((p, "h", i))
-            gates.append((p, "x", i))
-
-        circ.apply_gates(gates)
-
-        # quasi-grover-mixer gate
-        qgm_gate = np.zeros((2, 2), dtype=complex)
-        qgm_gate[0, 0] = 1
-        qgm_gate[1, 1] = np.exp(1j * betas[p] / n)
-
-        for i in range(n):
-            circ.apply_gate_raw(qgm_gate, (i,), gate_round=p, tags="QGM")
-
-        gates = []
-
-        for i in range(n):
-            gates.append((p, "x", i))
-            gates.append((p, "h", i))
-
-        circ.apply_gates(gates)
-
-    return circ
-
-
-def _create_qgm2_qaoa_circ(
-    graph,
-    depth,
-    gammas,
-    betas,
-    **circuit_opts,
-):
-    """
-    UNTESTED. Creates the Quasi-Grover-Mixer QAOA circuit.
-
-    Parameters
-    ----------
-    graph: ProblemGraph
-        Graph representing the instance of the problem.
-    depth: int
-        Number of layers of gates to apply (depth 'p').
-    gammas: iterable of floats
-        Interaction angles (problem Hamiltonian) for each layer.
-    betas: iterable of floats
-        Rotation angles (mixer Hamiltonian) for each layer.
-    circuit_opts: dict
-        Supplied to :class:`~quimb.tensor.circuit.Circuit`.
-
-    Returns
-    -------
-    circ: Circuit
-        The QAOA circuit.
-    """
-
-    circuit_opts.setdefault("gate_opts", {})
-    circuit_opts["gate_opts"].setdefault("contract", False)
-
-    hamil = hamiltonian(graph)
-    n = hamil.numqubit
-
-    circ = qtn.Circuit(n, **circuit_opts)
-
-    gates = []
-
-    # layer of hadamards to get into plus state
-    for i in range(n):
-        gates.append((0, "h", i))
-
-    circ.apply_gates(gates)
-
-    for p in range(depth):
-        gates = []
-
-        # problem Hamiltonian
-        coefs, ops, qubits = hamil.gates()
-
-        for coef, op, qubit in zip(coefs, ops, qubits):
-            # circ.apply_gate_raw(op, qubit, gate_round=d)
-            gates.append((p, op, coef * gammas[p], *qubit))
-
-        # mixer Hamiltonian
-        for i in range(n):
-            gates.append((p, "h", i))
-
-        for coef, op, qubit in zip(coefs, ops, qubits):
-            # circ.apply_gate_raw(op, qubit, gate_round=d)
-            gates.append((p, op, -coef * betas[p], *qubit))
-
-        for i in range(n):
-            gates.append((p, "h", i))
-
-        circ.apply_gates(gates)
 
     return circ

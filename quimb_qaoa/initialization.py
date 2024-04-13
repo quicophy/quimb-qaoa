@@ -2,13 +2,12 @@
 Initialization methods for the initial parameters of QAOA.
 """
 
-
 import numpy as np
 
 from .contraction import compute_energy
 
 
-def ini(
+def initialize_qaoa_parameters(
     graph,
     depth,
     ini_method,
@@ -20,7 +19,7 @@ def ini(
     **ansatz_opts,
 ):
     """
-    Creates appropriate initial parameters based on user input.
+    Creates appropriate initial parameters for QAOA based on user input.
 
     Parameters:
     -----------

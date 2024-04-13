@@ -2,23 +2,22 @@
 Example for solving the MAXCUT problem with QAOA.
 """
 
+import time
 
-import networkx as nx
 import cotengra as ctg
 import matplotlib.pyplot as plt
-import time
+import networkx as nx
 
 from quimb_qaoa.launcher import QAOALauncher
 from quimb_qaoa.utils import draw_qaoa_circ, rehearse_qaoa_circ
-
 
 # PARAMETERS
 
 # problem parameters
 numqubit = 6
-p = 3
+depth = 3
 ini_method = "random"
-qaoa_version = "vqcount-grover-mixer"
+qaoa_version = "grover-mixer"
 problem = "maxcut"
 seed = 66666
 
@@ -96,42 +95,41 @@ if max_bond is not None:
 
 # REHEARSAL AND PREPARATION
 
-G = nx.erdos_renyi_graph(numqubit, 0.5, seed=seed)
-G.numnodes = G.order()
-G.terms = {(i, j): 1 for i, j in G.edges}
-G.problem = "maxcut"
+graph = nx.erdos_renyi_graph(numqubit, 0.5, seed=seed)
+graph.numnodes = graph.order()
+graph.terms = {(i, j): 1 for i, j in graph.edges}
+graph.problem = "maxcut"
 
-# nx.draw(G)
-# plt.show()
+nx.draw(graph)
+plt.show()
 
-# draw_qaoa_circ(
-#     G,
-#     p,
-#     qaoa_version=qaoa_version,
-# )
+draw_qaoa_circ(
+    graph,
+    depth,
+    qaoa_version=qaoa_version,
+)
 
-# width, cost, local_exp_rehs = rehearse_qaoa_circ(
-#     G,
-#     p,
-#     qaoa_version=qaoa_version,
-#     mps=contract_mps,
-#     opt=contract_opt,
-#     backend=backend,
-#     draw=True,
-# )
+width, cost, local_exp_rehs = rehearse_qaoa_circ(
+    graph,
+    depth,
+    qaoa_version=qaoa_version,
+    mps=contract_mps,
+    opt=contract_opt,
+    backend=backend,
+    draw=True,
+)
 
-# print("Width :", width)
-# print("Cost :", cost)
+print("Width :", width)
+print("Cost :", cost)
 
 
 # MAIN
 
 start = time.time()
 QAOA = QAOALauncher(
-    G,
-    p,
+    graph,
+    depth,
     qaoa_version=qaoa_version,
-    problem=problem,
     max_bond=max_bond,
     optimizer=optimizer,
     tau=tau,

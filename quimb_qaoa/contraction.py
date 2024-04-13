@@ -296,7 +296,7 @@ def minimize_energy(
             theta = res.x
         except Trigger:
             theta = f_wrapper.best_x
-    # print(res)
+
     return theta
 
 

@@ -7,9 +7,11 @@ cotengra==0.5.6
 cotengrust==0.1.1
 cycler==0.12.1
 cytoolz==0.12.3
+exceptiongroup==1.2.0
 fonttools==4.49.0
 greenlet==3.0.3
 igraph==0.11.4
+iniconfig==2.0.0
 kahypar==1.3.5
 kiwisolver==1.4.5
 llvmlite==0.42.0
@@ -24,16 +26,19 @@ opt-einsum==3.3.0
 optuna==3.5.0
 packaging==24.0
 pillow==10.2.0
+pluggy==1.4.0
 psutil==5.9.8
 pyparsing==3.1.2
+pytest==8.1.1
 python-dateutil==2.9.0.post0
 PyYAML==6.0.1
+qecstruct==0.2.9
 quimb==1.7.3
--e git+https://github.com/quicophy/qaoa-quimb.git@28f10ce4fbfc894f74021b253d73667f5e2dc152#egg=quimb_qaoa
 scipy==1.12.0
 six==1.16.0
 SQLAlchemy==2.0.28
 texttable==1.7.0
+tomli==2.0.1
 toolz==0.12.1
 tqdm==4.66.2
 typing_extensions==4.10.0

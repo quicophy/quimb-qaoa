@@ -25,6 +25,8 @@ def create_qaoa_mps(graph, depth, gammas, betas, qaoa_version, assumptions=[]):
         Interaction angles (problem Hamiltonian) for each layer.
     betas: iterable of floats
         Rotation angles (mixer Hamiltonian) for each layer.
+    assumptions: iterable of str
+        The qubit to fixed in the QAOA circuit for the VQCount algorithm.
     qaoa_version: str
         Type of QAOA MPS to create.
 
@@ -46,8 +48,6 @@ def create_qaoa_mps(graph, depth, gammas, betas, qaoa_version, assumptions=[]):
         psi = create_vqcount_gm_qaoa_mps(
             graph, depth, gammas, betas, assumptions=assumptions
         )
-    # elif qaoa_version == "tdvp":
-    #     psi = _create_tdvp_qaoa_mps(graph, depth, gammas, betas)
     else:
         raise ValueError("The QAOA version given is not valid.")
 
@@ -364,185 +364,6 @@ def create_vqcount_gm_qaoa_mps(
 
         psi0 = psi
         del psi
-
-    return psi0
-
-
-def _create_tdvp_qaoa_mps(
-    graph,
-    depth,
-    gammas,
-    betas,
-):
-    """
-    UNTESTED. Creates the Time-Dependent Variational Principal (TDVP) QAOA MPS.
-
-    Parameters
-    ----------
-    graph: ProblemGraph
-        Graph representing the instance of the problem.
-    depth: int
-        Number of layers of gates to apply (depth 'p').
-    gammas: iterable of floats
-        Interaction angles (problem Hamiltonian) for each layer.
-    betas: iterable of floats
-        Rotation angles (mixer Hamiltonian) for each layer.
-
-    Returns
-    -------
-    psi: MatrixProductState
-        The QAOA MPS.
-    """
-
-    return
-
-
-def _create_qgm1_qaoa_mps(
-    graph,
-    depth,
-    gammas,
-    betas,
-):
-    """
-    UNTESTED. Creates the Quasi-Grover-Mixer QAOA (QGM-QAOA) MPS.
-
-    Parameters
-    ----------
-    graph: ProblemGraph
-        Graph representing the instance of the problem.
-    depth: int
-        Number of layers of gates to apply (depth 'p').
-    gammas: iterable of floats
-        Interaction angles (problem Hamiltonian) for each layer.
-    betas: iterable of floats
-        Rotation angles (mixer Hamiltonian) for each layer.
-
-    Returns
-    -------
-    psi: MatrixProductState
-        The QAOA MPS.
-    """
-
-    hamil = hamiltonian(graph)
-    n = hamil.numqubit  # may differ from number of nodes
-
-    # initial MPS
-    psi0 = MPS_computational_state("0" * n, tags="PSI0")
-
-    coefs, ops, qubits = hamil.gates()
-
-    # layer of hadamards to get into plus state
-    for i in range(n):
-        psi0.gate_(qu.hadamard(), i, contract="swap+split", tags="H")
-
-    for p in range(depth):
-        # problem Hamiltonian
-        for coef, op, qubit in zip(coefs, ops, qubits):
-            if op == "rzz":
-                psi0.gate_with_auto_swap_(rzz_param_gen([coef * gammas[p]]), qubit)
-
-            elif op == "rz":
-                psi0.gate_(
-                    rz_gate_param_gen([coef * gammas[p]]),
-                    qubit,
-                    contract="swap+split",
-                    tags="RZ",
-                )
-
-        # mixer Hamiltonian
-        for i in range(n):
-            psi0.gate_(qu.hadamard(), i, contract="swap+split", tags="H")
-
-        for coef, op, qubit in zip(coefs, ops, qubits):
-            if op == "rzz":
-                psi0.gate_with_auto_swap_(rzz_param_gen([-coef * betas[p]]), qubit)
-
-            elif op == "rz":
-                psi0.gate_(
-                    rz_gate_param_gen([-coef * betas[p]]),
-                    qubit,
-                    contract="swap+split",
-                    tags="RZ",
-                )
-
-        for i in range(n):
-            psi0.gate_(qu.hadamard(), i, contract="swap+split", tags="H")
-
-        psi0.normalize()
-
-    return psi0
-
-
-def _create_qgm2_qaoa_mps(
-    graph,
-    depth,
-    gammas,
-    betas,
-):
-    """
-    UNTESTED. Creates the Quasi-Grover-Mixer QAOA (QGM-QAOA) MPS.
-
-    Parameters
-    ----------
-    graph: ProblemGraph
-        Graph representing the instance of the problem.
-    depth: int
-        Number of layers of gates to apply (depth 'p').
-    gammas: iterable of floats
-        Interaction angles (problem Hamiltonian) for each layer.
-    betas: iterable of floats
-        Rotation angles (mixer Hamiltonian) for each layer.
-
-    Returns
-    -------
-    psi: MatrixProductState
-        The QAOA MPS.
-    """
-
-    hamil = hamiltonian(graph)
-    n = hamil.numqubit  # may differ from number of nodes
-
-    # initial MPS
-    psi0 = MPS_computational_state("0" * n, tags="PSI0")
-
-    # layer of hadamards to get into plus state
-    for i in range(n):
-        psi0.gate_(qu.hadamard(), i, contract="swap+split", tags="H")
-
-    for d in range(depth):
-        # problem Hamiltonian
-        coefs, ops, qubits = hamil.gates()
-
-        for coef, op, qubit in zip(coefs, ops, qubits):
-            if op == "rzz":
-                psi0.gate_with_auto_swap_(rzz_param_gen([coef * gammas[d]]), qubit)
-
-            elif op == "rz":
-                psi0.gate_(
-                    qu.phase_gate(coef * gammas[d]),
-                    qubit,
-                    contract="swap+split",
-                    tags="RZ",
-                )
-
-        # mixer Hamiltonian
-        for i in range(n):
-            psi0.gate_(qu.hadamard(), i, contract="swap+split", tags="H")
-            psi0.gate_(qu.pauli("X"), i, contract="swap+split", tags="X")
-
-        # quasi-grover-mixer gate
-        qgm_gate = np.zeros((2, 2), dtype=complex)
-        qgm_gate[0, 0] = 1
-        qgm_gate[1, 1] = np.exp(1j * betas[d] / n)
-
-        for i in range(n):
-            psi0.gate_(qgm_gate, i, contract="swap+split", tags="QGM")
-
-        for i in range(n):
-            psi0.gate_(qu.pauli("X"), i, contract="swap+split", tags="X")
-            psi0.gate_(qu.hadamard(), i, contract="swap+split", tags="H")
-
-        psi0.normalize()
 
     return psi0
 

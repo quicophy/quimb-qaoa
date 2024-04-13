@@ -2,9 +2,8 @@
 Implementation of the problem Hamiltonian of QAOA for different problems.
 """
 
-
-import numpy as np
 import networkx as nx
+import numpy as np
 import quimb as qu
 
 
@@ -27,7 +26,11 @@ def hamiltonian(graph):
     if graph.problem == "maxcut" or graph.problem == "nae3sat":
         return IsingHamiltonian(graph)
 
-    elif graph.problem == "2sat" or graph.problem == "1in3sat":
+    elif (
+        graph.problem == "2sat"
+        or graph.problem == "mono2sat"
+        or graph.problem == "mono1in3sat"
+    ):
         return IsingWithFieldHamiltonian(graph)
 
     # elif graph.problem == "genome":
@@ -37,11 +40,69 @@ def hamiltonian(graph):
         raise ValueError("The problem given is not implemented yet.")
 
 
-class IsingHamiltonian:
+class ProblemHamiltonian:
+    """
+    Base class for problem Hamiltonians. Each specific problem Hamiltonian should inherit from this class and implement the methods defined here.
+    """
+
+    def __init__(self, graph):
+        """
+        Initializes the problem Hamiltonian with a problem graph.
+
+        Parameters:
+        -----------
+        graph: ProblemGraph
+            Graph representing the instance of the problem.
+        """
+        self.graph = graph
+
+        self.problem_hamiltonian()
+
+    @property
+    def numqubit(self):
+        """
+        Returns the number of qubits needed to represent the problem.
+        """
+        raise NotImplementedError("This method should be implemented in a subclass")
+
+    def problem_hamiltonian(self):
+        """
+        Computes the problem Hamiltonian. Add the gates as an attribute to the ProblemHamiltonian.
+        """
+        raise NotImplementedError("This method should be implemented in a subclass")
+
+    def operators(self):
+        """
+        Returns a list of the operators of the problem Hamiltonian. Necessary for the contraction of the QAOA circuit.
+
+        Returns:
+        --------
+        ops: list[str]
+            List of operators of problem Hamiltonian.
+        qubits: list[Tuple[int]]
+            List of qubits on which the gates act.
+        """
+        raise NotImplementedError("This method should be implemented in a subclass")
+
+    def gates(self):
+        """
+        Returns the gates of the problem Hamiltonian. Necessary for the QAOA circuit and QAOA MPS creation.
+
+        Returns:
+        --------
+        coefs: list[float]
+            List of coefficients of the gates.
+        ops: list[str]
+            List of gates.
+        qubits: list[Tuple[int]]
+            List of qubits on which the gates act.
+        """
+        raise NotImplementedError("This method should be implemented in a subclass")
+
+
+class IsingHamiltonian(ProblemHamiltonian):
     r"""
     Implementation of the Ising Hamiltonian without local field
-
-    .. math::
 
         H = \sum_{i, j} J_{ij} \sigma_i^z \sigma_j^z,
 
@@ -53,14 +114,6 @@ class IsingHamiltonian:
         Graph representing the instance of the problem.
     """
 
-    def __init__(self, graph):
-        self.graph = graph
-
-        # generate the necessary RZZ gates
-        rzz_gates = self.problem_hamiltonian()
-
-        self.rzz_gates = rzz_gates
-
     @property
     def numqubit(self):
         """Number of qubits to represent the problem."""
@@ -68,12 +121,7 @@ class IsingHamiltonian:
 
     def problem_hamiltonian(self):
         """
-        Computes a dictionnary of RZZ gates with its parameter representing the problem Hamiltonian.
-
-        Returns:
-        --------
-        rzz_gates: dict[tuple[int, int], float]
-            RZZ gates representing the problem Hamiltonian, where the keys are the edges of the graph and the values are the parameters of the RZZ gates.
+        Computes a dictionnary of RZZ gates with its parameter representing the problem Hamiltonian. Add the RZZ gates as an attribute to the ProblemHamiltonian.
         """
 
         rzz_gates = {}
@@ -81,7 +129,7 @@ class IsingHamiltonian:
         for edge, weight in list(self.graph.terms.items()):
             rzz_gates[edge] = weight
 
-        return rzz_gates
+        self.rzz_gates = rzz_gates
 
     def operators(self):
         """
@@ -130,11 +178,9 @@ class IsingHamiltonian:
         return coefs, ops, qubits
 
 
-class IsingWithFieldHamiltonian:
+class IsingWithFieldHamiltonian(ProblemHamiltonian):
     """
     Implementation of the Ising Hamiltonian with local field
-
-    .. math::
 
         H = \sum_{i, j} J_{ij} \sigma_i^z \sigma_j^z + \sum_i h_i \sigma_i^z,
 
@@ -145,15 +191,6 @@ class IsingWithFieldHamiltonian:
     G: ProblemGraph
         Graph representing the instance of the problem.
     """
-
-    def __init__(self, graph):
-        self.graph = graph
-
-        # generate the necessary RZ and RZZ gates
-        rz_gates, rzz_gates = self.problem_hamiltonian()
-
-        self.rz_gates = rz_gates
-        self.rzz_gates = rzz_gates
 
     @property
     def numqubit(self):
@@ -181,7 +218,8 @@ class IsingWithFieldHamiltonian:
             elif len(edge) == 1:
                 rz_gates[edge] = weight
 
-        return rz_gates, rzz_gates
+        self.rz_gates = rz_gates
+        self.rzz_gates = rzz_gates
 
     def operators(self):
         """
@@ -242,8 +280,8 @@ class IsingWithFieldHamiltonian:
         qubits = []
         ops = []
         coefs = []
-        localham_rzz = {}
-        localham_rz = {}
+        # localham_rzz = {}
+        # localham_rz = {}
 
         for qubit, value in self.rzz_gates.items():
             qubits.append(qubit)
@@ -272,7 +310,7 @@ class IsingWithFieldHamiltonian:
         return coefs, ops, qubits
 
 
-class _GenomeHamiltonian:
+class _GenomeHamiltonian(ProblemHamiltonian):
     """
     UNTESTED. Implementation of the problem Hamiltonian for the Genome Assembly/Travelling Salesman Problem (TSP).
 
@@ -281,15 +319,6 @@ class _GenomeHamiltonian:
     G: ProblemGraph
         Graph representing the instance of the problem.
     """
-
-    def __init__(self, graph):
-        self.graph = graph
-
-        # generate the necessary RZ and RZZ gates
-        rz_gates, rzz_gates = self.problem_hamiltonian()
-
-        self.rz_gates = rz_gates
-        self.rzz_gates = rzz_gates
 
     @property
     def numqubit(self):
@@ -383,7 +412,8 @@ class _GenomeHamiltonian:
                 #         s = (j + 1) % n
                 rz_gates[(u * j,)] = rz_gates.get((u * j,), 0) + B * wuv / 4
 
-        return rz_gates, rzz_gates
+        self.rz_gates = rz_gates
+        self.rzz_gates = rzz_gates
 
     def operators(self):
         """

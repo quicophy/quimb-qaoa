@@ -2,16 +2,14 @@
 Miscellaneous utility functions.
 """
 
-
-import quimb as qu
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+import quimb as qu
 
-from .initialization import rand_ini
 from .circuit import create_qaoa_circ
-from .mps import create_qaoa_mps
 from .hamiltonian import hamiltonian
-from .decomp import *
+from .initialization import rand_ini
+from .mps import create_qaoa_mps
 
 
 def draw_qaoa_circ(graph, depth, qaoa_version):

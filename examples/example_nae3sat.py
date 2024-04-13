@@ -2,22 +2,21 @@
 Example for solving the NAE 3-SAT problem with QAOA.
 """
 
+import time
 
 import cotengra as ctg
 import matplotlib.pyplot as plt
-import time
 
 from quimb_qaoa.launcher import QAOALauncher
 from quimb_qaoa.problem import Nae3satGraph
 from quimb_qaoa.utils import draw_qaoa_circ, rehearse_qaoa_circ
-
 
 # PARAMETERS
 
 # problem parameters
 numqubit = 6
 alpha = 1
-p = 3
+depth = 3
 ini_method = "tqa"
 qaoa_version = "regular"
 problem = "nae3sat"
@@ -99,20 +98,20 @@ if max_bond is not None:
 # REHEARSAL AND PREPARATION
 
 numcau = alpha * numqubit
-G = Nae3satGraph(numqubit, numcau, 3, 3, seed)
-print("3-SAT formula:\n", G.cf_ini)
+graph = Nae3satGraph(numqubit, numcau, 3, 3, seed)
+print("3-SAT formula:\n", graph.cnf_ini)
 
-G.cnf_view()
+graph.cnf_view()
 plt.show()
 
-G.ising_view()
+graph.ising_view()
 plt.show()
 
-draw_qaoa_circ(G, p, qaoa_version=qaoa_version)
+draw_qaoa_circ(graph, depth, qaoa_version=qaoa_version)
 
 width, cost, local_exp_rehs = rehearse_qaoa_circ(
-    G,
-    p,
+    graph,
+    depth,
     qaoa_version=qaoa_version,
     mps=contract_mps,
     opt=contract_opt,
@@ -128,10 +127,9 @@ print("Cost :", cost)
 
 start = time.time()
 QAOA = QAOALauncher(
-    G,
-    p,
+    graph,
+    depth,
     qaoa_version=qaoa_version,
-    problem=problem,
     max_bond=max_bond,
     optimizer=optimizer,
     tau=tau,
@@ -141,7 +139,7 @@ theta_ini = QAOA.initialize_qaoa(
     ini_method=ini_method, opt=contract_opt, mps=contract_mps
 )
 print("Initialization is done!")
-energy, theta = QAOA.run_qaoa(opt=contract_opt, mps=contract_mps)
+energy, theta = QAOA.optimize_qaoa(opt=contract_opt, mps=contract_mps)
 print("Optimization is done!")
 counts = QAOA.sample_qaoa(shots, opt=sampling_opt, mps=sampling_mps)
 compute_time = QAOA.compute_time

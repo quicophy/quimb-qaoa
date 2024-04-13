@@ -16,7 +16,7 @@ quimb-qaoa is partitionned to allow easy implementation of QAOA extensions. Here
 
 - Launcher:
 
-Main class of the package.
+Main class of the package. Used to launch QAOA simulations.
 
 - Initialization:
 
@@ -24,7 +24,7 @@ Implementation of initialization methods. Currently supports: random initializat
 
 - Problem:
 
-Implementation of NP-hard problems. Currently supports: monotone NAE3SAT, monotone 1-in-3SAT, monotone 2SAT.
+Implementation of NP-hard problems. Currently supports: Monotone NAE3SAT, Monotone 1-in-3SAT, Monotone 2SAT, 2SAT.
 
 - Hamiltonian:
 

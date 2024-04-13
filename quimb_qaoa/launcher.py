@@ -3,14 +3,12 @@ Launcher for QAOA. Main class for the simulation of QAOA circuits.
 """
 
 import time
-from collections import Counter
 
 import quimb.tensor as qtn
 
 from .circuit import create_qaoa_circ
 from .contraction import compute_energy, minimize_energy
-from .decomp import *
-from .initialization import ini
+from .initialization import initialize_qaoa_parameters
 from .mps import create_qaoa_mps
 from .utils import rehearse_qaoa_circ
 
@@ -164,7 +162,7 @@ class QAOALauncher:
 
         # initialize the QAOA circuit
         start_ini = time.time()
-        theta_ini = ini(
+        theta_ini = initialize_qaoa_parameters(
             self.graph,
             self.depth,
             ini_method,
@@ -284,11 +282,12 @@ class QAOALauncher:
 
         # sample the QAOA circuit
         start_sampling = time.time()
-        # TO CHANGE
-        # counts = Counter(ansatz.sample(shots, optimize=opt, backend=self.backend, max_marginal_storage=2**28))
-        counts = Counter(
-            ansatz.simulate_counts(shots, optimize=opt, backend=self.backend)
+        counts = ansatz.sample(
+            shots, optimize=opt, backend=self.backend, max_marginal_storage=2**28
         )
+        # counts = Counter(
+        #     ansatz.simulate_counts(shots, optimize=opt, backend=self.backend)
+        # )
         end_sampling = time.time()
 
         self.compute_time["sampling"] = end_sampling - start_sampling

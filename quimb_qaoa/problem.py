@@ -2,14 +2,151 @@
 Implementation of differents problems to be solved using QAOA.
 """
 
-
 import igraph as ig
+import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 import qecstruct as qs
+from matplotlib.lines import Line2D
 
 
-class Nae3satGraph:
+def problem_graph(problem, numvar, numcau, vardeg, caudeg, seed):
+    """
+    Instantiate a problem graph.
+
+    Parameters
+    ----------
+    problem : str
+        Name of the problem.
+    numvar : int
+        Number of variables.
+    numcau : int
+        Number of clauses.
+    vardeg : int
+        Variables degree.
+    caudeg : int
+        Clauses degree.
+    seed : int
+        Seed for random number generation.
+
+    Returns
+    -------
+    problem_graph : ProblemGraph
+        Problem graph.
+    """
+
+    if problem == "nae3sat":
+        return Nae3satGraph(numvar, numcau, vardeg, caudeg, seed)
+    elif problem == "mono1in3sat":
+        return Mono1in3satGraph(numvar)
+    elif problem == "mono2sat":
+        return Mono2satGraph(numvar)
+    elif problem == "2sat":
+        return TwoSatGraph(numvar)
+    else:
+        raise ValueError("The problem is not implemented.")
+
+
+class ProblemGraph:
+    """
+    Base class for problem graphs.
+
+    Attributes
+    ----------
+    problem : str
+        Name of the problem.
+    numnodes : int
+        Number of variables.
+    cnf : numpy.ndarray
+        CNF formula.
+    edges : numpy.ndarray
+        Edges of the Ising graph.
+    terms : dict[Tuple[int, int], int]
+        Couplings of the Ising graph, where the keys are the edges of the graph and the values are the weights.
+    """
+
+    def __init__(self):
+        self.problem = None
+        self.numnodes = None
+        self.cnf_ini = None
+        self.cnf = None
+        self.edges = None
+        self.terms = None
+
+    def cnf_view(self):
+        """CNF formula view."""
+
+        # Create adjacency matrix
+        num_clauses = len(self.cnf_ini)
+        num_variables = max(
+            abs(literal) for clause in self.cnf_ini for literal in clause
+        )
+        adj_matrix = np.zeros((num_clauses, num_variables), dtype=int)
+
+        for i, clause in enumerate(self.cnf_ini):
+            adj_matrix[i, np.abs(clause) - 1] = 1
+
+        # Prepare graph and add nodes
+        graph = nx.Graph()
+        graph.add_nodes_from(range(num_variables), bipartite=0, color="blue")
+        graph.add_nodes_from(
+            range(num_variables, num_variables + num_clauses), bipartite=1, color="red"
+        )
+
+        # Add edges based on the adjacency matrix
+        edges = [
+            (j, num_variables + i)
+            for i in range(num_clauses)
+            for j in range(num_variables)
+            if adj_matrix[i, j]
+        ]
+        graph.add_edges_from(edges)
+
+        # Graph layout and drawing
+        pos = nx.spring_layout(graph)
+        nx.draw(
+            graph,
+            pos,
+            node_color=[data["color"] for _, data in graph.nodes(data=True)],
+            with_labels=True,
+            node_size=500,
+        )
+
+        # Legend setup
+        plt.legend(
+            handles=[
+                Line2D(
+                    [0],
+                    [0],
+                    marker="o",
+                    color="w",
+                    label="Clauses",
+                    markerfacecolor="red",
+                    markersize=10,
+                ),
+                Line2D(
+                    [0],
+                    [0],
+                    marker="o",
+                    color="w",
+                    label="Variables",
+                    markerfacecolor="blue",
+                    markersize=10,
+                ),
+            ],
+            loc="upper right",
+        )
+
+    def ising_view(self):
+        """Ising formulation view."""
+
+        # Create the graph from edges defined in the class
+        graph = nx.Graph(list(self.edges))
+
+        nx.draw(graph, with_labels=True, node_color="blue", node_size=500)
+
+
+class Nae3satGraph(ProblemGraph):
     """
     This class instantiates a random bicubic graph representing a monotone NAE3SAT problem using qecstruct. It then maps the bicubic graph to an Ising graph using the Ising formulation of the NAE3SAT problem.
 
@@ -32,9 +169,9 @@ class Nae3satGraph:
         Name of the problem.
     numnodes : int
         Number of variables.
-    cf_ini : numpy.ndarray
+    cnf_ini : numpy.ndarray
         3SAT formula.
-    cf : numpy.ndarray
+    cnf : numpy.ndarray
         NAE3SAT formula.
     edges : numpy.ndarray
         Edges of the Ising graph.
@@ -47,25 +184,25 @@ class Nae3satGraph:
         code = qs.random_regular_code(numvar, numcau, vardeg, caudeg, qs.Rng(seed))
 
         # write the 3SAT formula and find the edges of the ising graph
-        cf_ini = []
+        cnf_ini = []
         edges = []
         for row in code.par_mat().rows():
-            temp_cf = []
+            temp_cnf = []
             for value in row:
-                temp_cf.append(value)
-            cf_ini.append(temp_cf)
-            edges.append([temp_cf[0], temp_cf[1]])
-            edges.append([temp_cf[1], temp_cf[2]])
-            edges.append([temp_cf[2], temp_cf[0]])
+                temp_cnf.append(value)
+            cnf_ini.append(temp_cnf)
+            edges.append([temp_cnf[0], temp_cnf[1]])
+            edges.append([temp_cnf[1], temp_cnf[2]])
+            edges.append([temp_cnf[2], temp_cnf[0]])
 
         # name of the problem
         self.problem = "nae3sat"
         # number of variables
         self.numnodes = numvar
         # 3SAT formula
-        self.cf_ini = np.array(cf_ini) + 1
+        self.cnf_ini = np.array(cnf_ini) + 1
         # NAE3SAT formula
-        self.cf = np.vstack((self.cf_ini, np.invert(self.cf_ini) + 1))
+        self.cnf = np.vstack((self.cnf_ini, np.invert(self.cnf_ini) + 1))
         # edges of the ising graph
         self.edges = np.array(edges)
         # dictionary of edges of the ising graph
@@ -74,62 +211,8 @@ class Nae3satGraph:
             terms[(i, j)] = terms.get((i, j), 0) + 1
         self.terms = terms
 
-    def cnf_view(self):
-        """CNF formula view."""
 
-        numcau = len(self.cf_ini)
-        numvar = np.array([abs(np.array(list(i))).max() for i in self.cf_ini]).max()
-
-        adj_mat = np.zeros([numcau, numvar], int)
-        for i, r in enumerate(self.cf_ini):
-            adj_mat[i][abs(np.array(r)) - 1] = 1
-
-        graph = nx.Graph()
-
-        # add nodes with the bipartite attribute
-        graph.add_nodes_from(
-            range(numvar),
-            bipartite=0,
-            color="blue",
-            label={i: f"{i+1}" for i in range(numvar)},
-        )  # variable nodes
-        graph.add_nodes_from(
-            range(numvar, numvar + numcau),
-            bipartite=1,
-            color="red",
-            label={i + numvar: f"{i+1}" for i in range(numcau)},
-        )  # clause nodes
-
-        # Add edges based on the biadjacency matrix
-        for i in range(numcau):
-            for j in range(numvar):
-                if adj_mat[i][j] == 1:
-                    graph.add_edge(j, numvar + i)  # Connect clauses to variables
-
-        pos = nx.spring_layout(graph)  # Generate position for each node
-        colors = [
-            graph.nodes[n]["color"] for n in graph.nodes
-        ]  # Color based on the node attribute
-
-        # Draw nodes and edges
-        nx.draw(graph, pos, node_color=colors, with_labels=False, node_size=700)
-
-        # Draw custom labels
-        custom_labels = {}
-        for node in graph.nodes(data=True):
-            custom_labels[node[0]] = (
-                node[1]["label"][node[0]] if "label" in node[1] else node[0]
-            )
-
-        nx.draw_networkx_labels(graph, pos, labels=custom_labels)
-
-    def ising_view(self):
-        """Ising formulation graph."""
-
-        nx.Graph(list(self.edges))
-
-
-class Mono1in3satGraph:
+class Mono1in3satGraph(ProblemGraph):
     """
     This class instantiates a random bicubic graph representating a monotone 1-in-3SAT problem using qecstruct. It then maps the bicubic graph to an Ising graph using the Ising formulation of the monotone 1-in-3SAT problem.
 
@@ -144,9 +227,9 @@ class Mono1in3satGraph:
         Name of the problem.
     numnodes : int
         Number of variables.
-    cf_ini : numpy.ndarray
+    cnf_ini : numpy.ndarray
         3SAT formula.
-    cf : numpy.ndarray
+    cnf : numpy.ndarray
         1in3SAT formula.
     edges : numpy.ndarray
         Edges of the Ising graph.
@@ -170,7 +253,7 @@ class Mono1in3satGraph:
             edgelist.append((new_var, j))
             new_var += 1
 
-        temp_cf = []
+        temp_cnf = []
         for var in range(numvar):
             temp = []
             for i, j in edgelist:
@@ -178,39 +261,39 @@ class Mono1in3satGraph:
                     temp.append(j)
                 if j == var:
                     temp.append(i)
-            temp_cf.append(temp)
+            temp_cnf.append(temp)
 
-        cf = np.array(temp_cf) - numvar
+        cnf = np.array(temp_cnf) - numvar
 
         # write the 3SAT formula and find the edges of the ising graph
         edges = []
         terms = {}
-        for tpcf in cf:
-            edges.append([tpcf[0], tpcf[1]])
-            edges.append([tpcf[1], tpcf[2]])
-            edges.append([tpcf[2], tpcf[0]])
-            terms[(tpcf[0], tpcf[1])] = terms.get((tpcf[0], tpcf[1]), 0) + 1
-            terms[(tpcf[1], tpcf[2])] = terms.get((tpcf[1], tpcf[2]), 0) + 1
-            terms[(tpcf[2], tpcf[0])] = terms.get((tpcf[2], tpcf[0]), 0) + 1
-            terms[(tpcf[0],)] = terms.get((tpcf[0],), 0) - 1
-            terms[(tpcf[1],)] = terms.get((tpcf[1],), 0) - 1
-            terms[(tpcf[2],)] = terms.get((tpcf[2],), 0) - 1
+        for tpcnf in cnf:
+            edges.append([tpcnf[0], tpcnf[1]])
+            edges.append([tpcnf[1], tpcnf[2]])
+            edges.append([tpcnf[2], tpcnf[0]])
+            terms[(tpcnf[0], tpcnf[1])] = terms.get((tpcnf[0], tpcnf[1]), 0) + 1
+            terms[(tpcnf[1], tpcnf[2])] = terms.get((tpcnf[1], tpcnf[2]), 0) + 1
+            terms[(tpcnf[2], tpcnf[0])] = terms.get((tpcnf[2], tpcnf[0]), 0) + 1
+            terms[(tpcnf[0],)] = terms.get((tpcnf[0],), 0) - 1
+            terms[(tpcnf[1],)] = terms.get((tpcnf[1],), 0) - 1
+            terms[(tpcnf[2],)] = terms.get((tpcnf[2],), 0) - 1
 
         edges = sorted(edges)
 
         # name of the problem
-        self.problem = "1in3sat"
+        self.problem = "mono1in3sat"
         # 3SAT formula
-        self.cf_ini = cf + 1
+        self.cnf_ini = cnf + 1
         # 1in3SAT formula
-        cf = []
-        for i, j, k in self.cf_ini.tolist():
-            cf.append((i, j, k))
-            cf.append((i, -j, -k))
-            cf.append((-i, -j, k))
-            cf.append((-i, j, -k))
-            cf.append((-i, -j, -k))
-        self.cf = np.array(cf)
+        cnf = []
+        for i, j, k in self.cnf_ini.tolist():
+            cnf.append((i, j, k))
+            cnf.append((i, -j, -k))
+            cnf.append((-i, -j, k))
+            cnf.append((-i, j, -k))
+            cnf.append((-i, -j, -k))
+        self.cnf = np.array(cnf)
         # edges of the ising graph
         self.edges = np.array(edges)
         # number of variables
@@ -218,63 +301,8 @@ class Mono1in3satGraph:
         # dictionary of edges of the ising graph
         self.terms = terms
 
-    def cnf_view(self):
-        """CNF formula view."""
 
-        numcau = len(self.cf_ini)
-        numvar = np.array([abs(np.array(list(i))).max() for i in self.cf_ini]).max()
-
-        adj_mat = np.zeros([numcau, numvar], int)
-        for i, r in enumerate(self.cf_ini):
-            adj_mat[i][abs(np.array(r)) - 1] = 1
-
-        graph = nx.Graph()
-
-        # add nodes with the bipartite attribute
-        graph.add_nodes_from(
-            range(numcau),
-            bipartite=0,
-            color="blue",
-            label={i: f"{i+1}" for i in range(numvar)},
-        )  # variable nodes
-        graph.add_nodes_from(
-            range(numcau, numcau + numvar),
-            bipartite=1,
-            color="red",
-            label={i + numvar: f"{i+1}" for i in range(numcau)},
-        )  # clause nodes
-
-        # Add edges based on the biadjacency matrix
-        for i in range(numcau):
-            for j in range(numvar):
-                if adj_mat[i][j] == 1:
-                    graph.add_edge(j, numvar + i)  # Connect clauses to variables
-
-        pos = nx.spring_layout(graph)  # Generate position for each node
-        colors = [
-            graph.nodes[n]["color"] for n in graph.nodes
-        ]  # Color based on the node attribute
-
-        # Draw nodes and edges
-        nx.draw(graph, pos, node_color=colors, with_labels=False, node_size=700)
-
-        # Draw custom labels
-        custom_labels = {}
-        for node in graph.nodes(data=True):
-            custom_labels[node[0]] = (
-                node[1]["label"][node[0]] if "label" in node[1] else node[0]
-            )
-
-        nx.draw_networkx_labels(graph, pos, labels=custom_labels)
-
-    def ising_view(self):
-        """
-        Ising formulation graph
-        """
-        nx.Graph(list(self.edges))
-
-
-class Mono2satGraph:
+class Mono2satGraph(ProblemGraph):
     """
     This class instantiates a random bicubic graph representating a monotone 2-SAT problem using qecstruct. It then maps the bicubic graph to an Ising graph using the Ising formulation of the monotone 2-SAT problem.
 
@@ -289,7 +317,7 @@ class Mono2satGraph:
         Name of the problem.
     numnodes : int
         Number of variables.
-    cf : numpy.ndarray
+    cnf : numpy.ndarray
         2SAT formula.
     edges : numpy.ndarray
         Edges of the Ising graph.
@@ -300,7 +328,7 @@ class Mono2satGraph:
     def __init__(self, numvar):
         cg = ig.Graph.Degree_Sequence([3] * numvar, method="vl")
         edgelist = cg.get_edgelist()
-        cf = np.array(edgelist) + 1
+        cnf = np.array(edgelist) + 1
 
         terms = {}
         for i, j in edgelist:
@@ -308,66 +336,65 @@ class Mono2satGraph:
             terms[(j,)] = terms.get((j,), 0) + 1
             terms[(i, j)] = terms.get((i, j), 0) + 1
 
-        # 3SAT formula
-        self.cf = cf
+        # 2SAT formula
+        self.cnf_ini = cnf
+        self.cnf = cnf
         # edges of the ising graph
         self.edges = np.array(edgelist)
         # number of variables
         self.numnodes = numvar
         # dictionary of edges of the ising graph
         self.terms = terms
-        self.problem = "2sat"
+        self.problem = "mono2sat"
 
-    def cnf_view(self):
-        """CNF formula view."""
 
-        numcau = len(self.cf_ini)
-        numvar = np.array([abs(np.array(list(i))).max() for i in self.cf_ini]).max()
+class TwoSatGraph(ProblemGraph):
+    """
+    This class instantiates a random bicubic graph representating a 2-SAT problem using qecstruct. It then maps the bicubic graph to an Ising graph using the Ising formulation of the monotone 2-SAT problem.
 
-        adj_mat = np.zeros([numcau, numvar], int)
-        for i, r in enumerate(self.cf_ini):
-            adj_mat[i][abs(np.array(r)) - 1] = 1
+    Parameters
+    ----------
+    numvar : int
+        Number of variables.
 
-        graph = nx.Graph()
+    Attributes
+    ----------
+    problem : str
+        Name of the problem.
+    numnodes : int
+        Number of variables.
+    cnf : numpy.ndarray
+        2SAT formula.
+    edges : numpy.ndarray
+        Edges of the Ising graph.
+    terms : dict[Tuple[int, int], int]
+        Couplings of the Ising graph, where the keys are the edges of the graph and the values are the weights.
+    """
 
-        # add nodes with the bipartite attribute
-        graph.add_nodes_from(
-            range(numcau),
-            bipartite=0,
-            color="blue",
-            label={i: f"{i+1}" for i in range(numvar)},
-        )  # variable nodes
-        graph.add_nodes_from(
-            range(numcau, numcau + numvar),
-            bipartite=1,
-            color="red",
-            label={i + numvar: f"{i+1}" for i in range(numcau)},
-        )  # clause nodes
+    def __init__(self, numvar):
+        cg = ig.Graph.Degree_Sequence([3] * numvar, method="vl")
+        edgelist = cg.get_edgelist()
+        cnf = np.array(edgelist) + 1
 
-        # Add edges based on the biadjacency matrix
-        for i in range(numcau):
-            for j in range(numvar):
-                if adj_mat[i][j] == 1:
-                    graph.add_edge(j, numvar + i)  # Connect clauses to variables
+        # add negations
+        negations = np.random.choice([-1, 1], size=cnf.shape)
+        cnf = cnf * negations
 
-        pos = nx.spring_layout(graph)  # Generate position for each node
-        colors = [
-            graph.nodes[n]["color"] for n in graph.nodes
-        ]  # Color based on the node attribute
-
-        # Draw nodes and edges
-        nx.draw(graph, pos, node_color=colors, with_labels=False, node_size=700)
-
-        # Draw custom labels
-        custom_labels = {}
-        for node in graph.nodes(data=True):
-            custom_labels[node[0]] = (
-                node[1]["label"][node[0]] if "label" in node[1] else node[0]
+        terms = {}
+        for iter, (i, j) in enumerate(edgelist):
+            terms[(i,)] = terms.get((i,), 0) + 1 * np.sign(cnf[iter, 0])
+            terms[(j,)] = terms.get((j,), 0) + 1 * np.sign(cnf[iter, 1])
+            terms[(i, j)] = terms.get((i, j), 0) + 1 * np.sign(
+                cnf[iter, 0] * cnf[iter, 1]
             )
 
-        nx.draw_networkx_labels(graph, pos, labels=custom_labels)
-
-    def ising_view(self):
-        """Ising formulation graph"""
-
-        nx.Graph((list(self.edges)))
+        # 3SAT formula
+        self.cnf_ini = cnf
+        self.cnf = cnf
+        # edges of the ising graph
+        self.edges = np.array(edgelist)
+        # number of variables
+        self.numnodes = numvar
+        # dictionary of edges of the ising graph
+        self.terms = terms
+        self.problem = "mono2sat"
