@@ -14,7 +14,7 @@ from quimb_qaoa.utils import draw_qaoa_circ, rehearse_qaoa_circ
 # PARAMETERS
 
 # problem parameters
-numqubit = 6
+qubit = 6
 depth = 3
 ini_method = "random"
 qaoa_version = "grover-mixer"
@@ -95,8 +95,8 @@ if max_bond is not None:
 
 # REHEARSAL AND PREPARATION
 
-graph = nx.erdos_renyi_graph(numqubit, 0.5, seed=seed)
-graph.numnodes = graph.order()
+graph = nx.erdos_renyi_graph(qubit, 0.5, seed=seed)
+graph.num_nodes = graph.order()
 graph.terms = {(i, j): 1 for i, j in graph.edges}
 graph.problem = "maxcut"
 

@@ -90,7 +90,7 @@ def create_reg_qaoa_circ(
     circuit_opts["gate_opts"].setdefault("contract", False)
 
     hamil = hamiltonian(graph)
-    n = hamil.numqubit  # may differ from the number of nodes
+    n = hamil.num_qubit  # may differ from the number of nodes
 
     circ = qtn.Circuit(n, **circuit_opts)
 
@@ -154,7 +154,7 @@ def create_gm_qaoa_circ(
     circuit_opts["gate_opts"].setdefault("contract", False)
 
     hamil = hamiltonian(graph)
-    n = hamil.numqubit  # may differ from the number of nodes
+    n = hamil.num_qubit  # may differ from the number of nodes
 
     circ = qtn.Circuit(n, **circuit_opts)
 
@@ -237,7 +237,7 @@ def create_vqcount_reg_qaoa_circ(
     circuit_opts["gate_opts"].setdefault("contract", False)
 
     hamil = hamiltonian(graph)
-    n = hamil.numqubit  # may differ from the number of nodes
+    n = hamil.num_qubit  # may differ from the number of nodes
 
     circ = qtn.Circuit(n, **circuit_opts)
 
@@ -307,7 +307,7 @@ def create_vqcount_gm_qaoa_circ(
     circuit_opts["gate_opts"].setdefault("contract", False)
 
     hamil = hamiltonian(graph)
-    n = hamil.numqubit  # may differ from the number of nodes
+    n = hamil.num_qubit  # may differ from the number of nodes
 
     circ = qtn.Circuit(n, **circuit_opts)
 
@@ -390,7 +390,7 @@ def _create_xy_qaoa_circ(
     circuit_opts["gate_opts"].setdefault("contract", False)
 
     hamil = hamiltonian(graph)
-    n = hamil.numqubit
+    n = hamil.num_qubit
 
     dims = n * [2]
 

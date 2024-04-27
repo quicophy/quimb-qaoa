@@ -36,11 +36,11 @@ def problem_graph(problem, numvar, numcau, vardeg, caudeg, seed):
     """
 
     if problem == "nae3sat":
-        return Nae3satGraph(numvar, numcau, vardeg, caudeg, seed)
+        return MonoNaeThreeSatGraph(numvar, numcau, vardeg, caudeg, seed)
     elif problem == "mono1in3sat":
-        return Mono1in3satGraph(numvar)
+        return MonoOneInThreeSatGraph(numvar)
     elif problem == "mono2sat":
-        return Mono2satGraph(numvar)
+        return MonoTwoSatGraph(numvar)
     elif problem == "2sat":
         return TwoSatGraph(numvar)
     else:
@@ -55,7 +55,7 @@ class ProblemGraph:
     ----------
     problem : str
         Name of the problem.
-    numnodes : int
+    num_nodes : int
         Number of variables.
     cnf : numpy.ndarray
         CNF formula.
@@ -67,7 +67,7 @@ class ProblemGraph:
 
     def __init__(self):
         self.problem = None
-        self.numnodes = None
+        self.num_nodes = None
         self.cnf_ini = None
         self.cnf = None
         self.edges = None
@@ -146,7 +146,7 @@ class ProblemGraph:
         nx.draw(graph, with_labels=True, node_color="blue", node_size=500)
 
 
-class Nae3satGraph(ProblemGraph):
+class MonoNaeThreeSatGraph(ProblemGraph):
     """
     This class instantiates a random bicubic graph representing a monotone NAE3SAT problem using qecstruct. It then maps the bicubic graph to an Ising graph using the Ising formulation of the NAE3SAT problem.
 
@@ -167,7 +167,7 @@ class Nae3satGraph(ProblemGraph):
     ----------
     problem : str
         Name of the problem.
-    numnodes : int
+    num_nodes : int
         Number of variables.
     cnf_ini : numpy.ndarray
         3SAT formula.
@@ -190,15 +190,19 @@ class Nae3satGraph(ProblemGraph):
             temp_cnf = []
             for value in row:
                 temp_cnf.append(value)
-            cnf_ini.append(temp_cnf)
+            cnf_ini.append(sorted(temp_cnf))
             edges.append([temp_cnf[0], temp_cnf[1]])
             edges.append([temp_cnf[1], temp_cnf[2]])
             edges.append([temp_cnf[2], temp_cnf[0]])
 
+        # sort for consistency
+        cnf_ini = sorted(cnf_ini)
+        edges = sorted(edges)
+
         # name of the problem
         self.problem = "nae3sat"
         # number of variables
-        self.numnodes = numvar
+        self.num_nodes = numvar
         # 3SAT formula
         self.cnf_ini = np.array(cnf_ini) + 1
         # NAE3SAT formula
@@ -212,9 +216,9 @@ class Nae3satGraph(ProblemGraph):
         self.terms = terms
 
 
-class Mono1in3satGraph(ProblemGraph):
+class MonoOneInThreeSatGraph(ProblemGraph):
     """
-    This class instantiates a random bicubic graph representating a monotone 1-in-3SAT problem using qecstruct. It then maps the bicubic graph to an Ising graph using the Ising formulation of the monotone 1-in-3SAT problem.
+    This class instantiates a random bicubic graph representating a monotone 1-in-3SAT problem. It then maps the bicubic graph to an Ising graph using the Ising formulation of the monotone 1-in-3SAT problem. ONLY SUPPORTS ALPHA = 2/3.
 
     Parameters
     ----------
@@ -225,7 +229,7 @@ class Mono1in3satGraph(ProblemGraph):
     ----------
     problem : str
         Name of the problem.
-    numnodes : int
+    num_nodes : int
         Number of variables.
     cnf_ini : numpy.ndarray
         3SAT formula.
@@ -261,9 +265,9 @@ class Mono1in3satGraph(ProblemGraph):
                     temp.append(j)
                 if j == var:
                     temp.append(i)
-            temp_cnf.append(temp)
+            temp_cnf.append(sorted(temp))
 
-        cnf = np.array(temp_cnf) - numvar
+        cnf = np.array(sorted(temp_cnf)) - numvar
 
         # write the 3SAT formula and find the edges of the ising graph
         edges = []
@@ -279,6 +283,7 @@ class Mono1in3satGraph(ProblemGraph):
             terms[(tpcnf[1],)] = terms.get((tpcnf[1],), 0) - 1
             terms[(tpcnf[2],)] = terms.get((tpcnf[2],), 0) - 1
 
+        # sort for consistency
         edges = sorted(edges)
 
         # name of the problem
@@ -297,14 +302,14 @@ class Mono1in3satGraph(ProblemGraph):
         # edges of the ising graph
         self.edges = np.array(edges)
         # number of variables
-        self.numnodes = int(3 * numvar / 2)
+        self.num_nodes = int(3 * numvar / 2)
         # dictionary of edges of the ising graph
         self.terms = terms
 
 
-class Mono2satGraph(ProblemGraph):
+class MonoTwoSatGraph(ProblemGraph):
     """
-    This class instantiates a random bicubic graph representating a monotone 2-SAT problem using qecstruct. It then maps the bicubic graph to an Ising graph using the Ising formulation of the monotone 2-SAT problem.
+    This class instantiates a random bicubic graph representating a monotone 2-SAT problem. It then maps the bicubic graph to an Ising graph using the Ising formulation of the monotone 2-SAT problem. ONLY SUPPORTS ALPHA = 3/2.
 
     Parameters
     ----------
@@ -315,7 +320,7 @@ class Mono2satGraph(ProblemGraph):
     ----------
     problem : str
         Name of the problem.
-    numnodes : int
+    num_nodes : int
         Number of variables.
     cnf : numpy.ndarray
         2SAT formula.
@@ -327,7 +332,7 @@ class Mono2satGraph(ProblemGraph):
 
     def __init__(self, numvar):
         cg = ig.Graph.Degree_Sequence([3] * numvar, method="vl")
-        edgelist = cg.get_edgelist()
+        edgelist = sorted(cg.get_edgelist())
         cnf = np.array(edgelist) + 1
 
         terms = {}
@@ -342,7 +347,7 @@ class Mono2satGraph(ProblemGraph):
         # edges of the ising graph
         self.edges = np.array(edgelist)
         # number of variables
-        self.numnodes = numvar
+        self.num_nodes = numvar
         # dictionary of edges of the ising graph
         self.terms = terms
         self.problem = "mono2sat"
@@ -350,7 +355,7 @@ class Mono2satGraph(ProblemGraph):
 
 class TwoSatGraph(ProblemGraph):
     """
-    This class instantiates a random bicubic graph representating a 2-SAT problem using qecstruct. It then maps the bicubic graph to an Ising graph using the Ising formulation of the monotone 2-SAT problem.
+    This class instantiates a random bicubic graph representating a 2-SAT problem. It then maps the bicubic graph to an Ising graph using the Ising formulation of the monotone 2-SAT problem. ONLY SUPPORTS ALPHA = 2/3.
 
     Parameters
     ----------
@@ -361,7 +366,7 @@ class TwoSatGraph(ProblemGraph):
     ----------
     problem : str
         Name of the problem.
-    numnodes : int
+    num_nodes : int
         Number of variables.
     cnf : numpy.ndarray
         2SAT formula.
@@ -373,7 +378,7 @@ class TwoSatGraph(ProblemGraph):
 
     def __init__(self, numvar):
         cg = ig.Graph.Degree_Sequence([3] * numvar, method="vl")
-        edgelist = cg.get_edgelist()
+        edgelist = sorted(cg.get_edgelist())
         cnf = np.array(edgelist) + 1
 
         # add negations
@@ -394,7 +399,7 @@ class TwoSatGraph(ProblemGraph):
         # edges of the ising graph
         self.edges = np.array(edgelist)
         # number of variables
-        self.numnodes = numvar
+        self.num_nodes = numvar
         # dictionary of edges of the ising graph
         self.terms = terms
         self.problem = "mono2sat"

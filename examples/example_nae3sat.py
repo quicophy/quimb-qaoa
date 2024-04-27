@@ -8,13 +8,13 @@ import cotengra as ctg
 import matplotlib.pyplot as plt
 
 from quimb_qaoa.launcher import QAOALauncher
-from quimb_qaoa.problem import Nae3satGraph
+from quimb_qaoa.problem import MonoNaeThreeSatGraph
 from quimb_qaoa.utils import draw_qaoa_circ, rehearse_qaoa_circ
 
 # PARAMETERS
 
 # problem parameters
-numqubit = 6
+qubit = 6
 alpha = 1
 depth = 3
 ini_method = "tqa"
@@ -28,7 +28,7 @@ sampling_mps = True
 optimizer = "SLSQP"
 backend = "numpy"
 shots = 1000
-tau = -0.9 * numqubit * alpha
+# tau = -0.9 * qubit * alpha
 tau = None
 
 # slicing and compression parameters
@@ -97,8 +97,8 @@ if max_bond is not None:
 
 # REHEARSAL AND PREPARATION
 
-numcau = alpha * numqubit
-graph = Nae3satGraph(numqubit, numcau, 3, 3, seed)
+numcau = alpha * qubit
+graph = MonoNaeThreeSatGraph(qubit, numcau, 3, 3, seed)
 print("3-SAT formula:\n", graph.cnf_ini)
 
 graph.cnf_view()

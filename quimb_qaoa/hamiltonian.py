@@ -59,7 +59,7 @@ class ProblemHamiltonian:
         self.problem_hamiltonian()
 
     @property
-    def numqubit(self):
+    def num_qubit(self):
         """
         Returns the number of qubits needed to represent the problem.
         """
@@ -115,9 +115,9 @@ class IsingHamiltonian(ProblemHamiltonian):
     """
 
     @property
-    def numqubit(self):
+    def num_qubit(self):
         """Number of qubits to represent the problem."""
-        return self.graph.numnodes
+        return self.graph.num_nodes
 
     def problem_hamiltonian(self):
         """
@@ -193,9 +193,9 @@ class IsingWithFieldHamiltonian(ProblemHamiltonian):
     """
 
     @property
-    def numqubit(self):
+    def num_qubit(self):
         """Number of qubits to represent the problem."""
-        return self.graph.numnodes
+        return self.graph.num_nodes
 
     def problem_hamiltonian(self):
         """
@@ -321,9 +321,9 @@ class _GenomeHamiltonian(ProblemHamiltonian):
     """
 
     @property
-    def numqubit(self):
+    def num_qubit(self):
         """Number of qubits to represent the problem."""
-        return (self.graph.numnodes - 1) ** 2
+        return (self.graph.num_nodes - 1) ** 2
 
     def problem_hamiltonian(self):
         """
@@ -337,7 +337,7 @@ class _GenomeHamiltonian(ProblemHamiltonian):
             RZZ gates representing the field terms of the problem Hamiltonian, where the keys are the edges of the graph and the values are the parameters of the RZZ gates.
         """
 
-        n = self.graph.numnodes - 1
+        n = self.graph.num_nodes - 1
 
         adj = 100 * nx.to_numpy_array(self.G)
         deg = np.sum(adj, axis=1).tolist()

@@ -8,6 +8,7 @@ import quimb.tensor as qtn
 
 from .circuit import create_qaoa_circ
 from .contraction import compute_energy, minimize_energy
+from .decomp import *
 from .initialization import initialize_qaoa_parameters
 from .mps import create_qaoa_mps
 from .utils import rehearse_qaoa_circ
@@ -207,7 +208,7 @@ class QAOALauncher:
 
         # minimize the energy
         start_minim = time.time()
-        theta_opt = minimize_energy(
+        theta_opt, energy_opt = minimize_energy(
             self.theta_ini,
             self.graph,
             qaoa_version=self.qaoa_version,
@@ -224,7 +225,7 @@ class QAOALauncher:
         if energy:
             # compute the final energy (useful for contraction time)
             start_energy = time.time()
-            energy = compute_energy(
+            energy_opt = compute_energy(
                 theta_opt,
                 self.graph,
                 qaoa_version=self.qaoa_version,
@@ -238,16 +239,16 @@ class QAOALauncher:
         else:
             start_energy = None
             end_energy = None
-            energy = None
+            energy_opt = None
 
         self.compute_time["minimisation"] = end_minim - start_minim
         self.compute_time["energy"] = end_energy - start_energy
 
         # save the optimal parameters
-        self.energy = energy
+        self.energy_opt = energy_opt
         self.theta_opt = theta_opt
 
-        return energy, theta_opt
+        return energy_opt, theta_opt
 
     def sample_qaoa(self, shots, ansatz=None, opt=None, mps=True, **ansatz_opts):
         """

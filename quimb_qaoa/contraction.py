@@ -127,7 +127,9 @@ def compute_exact_energy(
             for (op, qubit) in zip(ops, qubits)
         ]
 
-    return sum(ens).real
+    energy = np.array(sum(ens).real).tolist()
+
+    return energy
 
 
 def _compute_approx_energy(
@@ -280,6 +282,7 @@ def minimize_energy(
             args=args,
         )
         theta = res.x
+        energy_opt = res.fun
 
     else:
         f_wrapper = Objective_Function_Wrapper(wrapper_compute_energy, tau)
@@ -294,10 +297,12 @@ def minimize_energy(
                 args=args,
             )
             theta = res.x
+            energy_opt = res.fun
         except Trigger:
             theta = f_wrapper.best_x
+            energy_opt = f_wrapper.best_func
 
-    return theta
+    return theta, energy_opt
 
 
 class Objective_Function_Wrapper:
@@ -328,7 +333,6 @@ class Objective_Function_Wrapper:
         if fval < self.best_func:
             self.best_func = fval
             self.best_x = xk
-
         return fval
 
     def stop(self, *args):

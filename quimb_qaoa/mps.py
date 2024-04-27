@@ -81,7 +81,7 @@ def create_reg_qaoa_mps(
     """
 
     hamil = hamiltonian(graph)
-    n = hamil.numqubit  # may differ from number of nodes
+    n = hamil.num_qubit  # may differ from number of nodes
 
     # initial MPS
     psi0 = MPS_computational_state("0" * n, tags="PSI0")
@@ -144,7 +144,7 @@ def create_gm_qaoa_mps(
     """
 
     hamil = hamiltonian(graph)
-    n = hamil.numqubit  # may differ from number of nodes
+    n = hamil.num_qubit  # may differ from number of nodes
 
     # initial MPS
     psi0 = MPS_computational_state("0" * n, tags="PSI0")
@@ -227,7 +227,7 @@ def create_vqcount_reg_qaoa_mps(
     """
 
     hamil = hamiltonian(graph)
-    n = hamil.numqubit  # may differ from number of nodes
+    n = hamil.num_qubit  # may differ from number of nodes
 
     # initial MPS
     psi0 = MPS_computational_state("0" * n, tags="PSI0")
@@ -297,7 +297,7 @@ def create_vqcount_gm_qaoa_mps(
     """
 
     hamil = hamiltonian(graph)
-    n = hamil.numqubit  # may differ from number of nodes
+    n = hamil.num_qubit  # may differ from number of nodes
 
     # initial MPS
     psi0 = MPS_computational_state("0" * n, tags="PSI0")

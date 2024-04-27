@@ -32,8 +32,8 @@ Formulation of the problems as Ising models.
 
 - Circuit:
 
-Implementation of QAOA ansatz with the circuit form. Currently supports: Regular QAOA, Grover-Mixer QAOA.
+Implementation of QAOA ansatz with the circuit form. Currently supports: Regular QAOA and Grover-Mixer QAOA.
 
 - MPS:
 
-Implementation of QAOA ansatz with the Matrix-Product-State (MPS) form. Currently supports: Regular QAOA, Grover-Mixer QAOA.
+Implementation of QAOA ansatz with the Matrix-Product-State (MPS) form. Currently supports: Regular QAOA and Grover-Mixer QAOA.

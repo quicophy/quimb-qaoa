@@ -7,6 +7,7 @@ import numpy as np
 import quimb as qu
 
 from .circuit import create_qaoa_circ
+from .decomp import *
 from .hamiltonian import hamiltonian
 from .initialization import rand_ini
 from .mps import create_qaoa_mps
@@ -34,7 +35,7 @@ def draw_qaoa_circ(graph, depth, qaoa_version):
 
     circ.psi.draw(color=["PSI0", "H", "X", "RX", "RZ", "RZZ", "NCRZ", "QGM"])
 
-    circ.get_rdm_lightcone_simplified(range(graph.numnodes)).draw(
+    circ.get_rdm_lightcone_simplified(range(graph.num_nodes)).draw(
         color=["PSI0", "H", "X", "RX", "RZ", "RZZ", "NCRZ", "QGM"], show_tags=False
     )
 
